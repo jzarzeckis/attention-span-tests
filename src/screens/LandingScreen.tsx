@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Github } from "lucide-react";
 import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
@@ -63,6 +64,15 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
           </CardFooter>
         </Card>
       </div>
+      <a
+        href="https://github.com/jzarzeckis/attention-span-tests"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-4 right-4 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
+        aria-label="GitHub repository"
+      >
+        <Github className="h-4 w-4" />
+      </a>
     </div>
   );
 }
