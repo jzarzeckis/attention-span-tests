@@ -5,6 +5,16 @@
 - Screen state managed in `App.tsx` using the `Screen` union type from `src/types.ts`
 - build.ts has pre-existing TS errors (not from our code); typecheck passes for src/
 
+## 2026-03-06 - US-007
+- What was implemented: Go/No-Go Task with 100 trials (80 Go/green + 20 No-Go/red). Stimulus visible 500ms, ISI 1000ms. On stimulus timeout without tap, omission recorded for Go trials. On tap during No-Go stimulus, commission error recorded. Records commissionErrors, commissionErrorRate, omissionErrors, omissionErrorRate, meanRT (from Go hits only), rtCV (SD/mean), saved to sessionStorage as "gonogo". TestScreen now routes "gonogo" to GoNoGoTest. Fixed TS error from all TEST_LIST IDs being handled (else branch becomes `never`) by casting `test` in the PlaceholderTest fallback.
+- Files changed: src/screens/tests/GoNoGoTest.tsx (new), src/screens/TestScreen.tsx (updated)
+- **Learnings for future iterations:**
+  - When all TEST_LIST ids are handled in if-chains, TypeScript narrows `test` to `never` in the else branch — cast with `(test as { name: string } | undefined)?.name` to keep the PlaceholderTest fallback compiling
+  - For timer-based stimulus with user response: clear `stimulusTimerRef` on tap (before recording) and set `stimulusVisibleRef.current = false` to prevent the timeout callback from also firing and double-counting
+  - `runNextTrial` is self-referential but called only via setTimeout — to avoid stale closure, exclude from deps with eslint-disable comment (same pattern as PVT)
+  - meanRT should only include Go-hit reaction times, not commission-error taps on No-Go stimuli
+---
+
 ## 2026-03-06 - US-006
 - What was implemented: Delay Discounting Task with adaptive bisection staircase. Tests 5 delays (1, 7, 30, 180, 365 days) × 5 rounds each = 25 total binary choices. For each delay, bisects the immediate reward amount ($1-$99 vs $100 delayed) to find the indifference point. Calculates k per delay via hyperbolic model (k = (A/V - 1) / D), reports medianK across all delays. Results saved to sessionStorage as "delay". TestScreen now routes "delay" to DelayDiscountingTest.
 - Files changed: src/screens/tests/DelayDiscountingTest.tsx (new), src/screens/TestScreen.tsx (updated)
