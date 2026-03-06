@@ -3,10 +3,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
 import { SARTTest } from "./tests/SARTTest";
-import { FocusDurationTest } from "./tests/FocusDurationTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
-import { DelayDiscountingTest } from "./tests/DelayDiscountingTest";
 import { GoNoGoTest } from "./tests/GoNoGoTest";
 
 interface TestScreenProps {
@@ -47,17 +45,11 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     if (test?.id === "sart") {
       return <SARTTest onComplete={onNext} />;
     }
-    if (test?.id === "focus") {
-      return <FocusDurationTest onComplete={onNext} />;
-    }
     if (test?.id === "stroop") {
       return <StroopTest onComplete={onNext} />;
     }
     if (test?.id === "pvt") {
       return <PVTTest onComplete={onNext} />;
-    }
-    if (test?.id === "delay") {
-      return <DelayDiscountingTest onComplete={onNext} />;
     }
     if (test?.id === "gonogo") {
       return <GoNoGoTest onComplete={onNext} />;

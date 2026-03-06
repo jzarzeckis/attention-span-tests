@@ -6,10 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import type { SARTStats } from "./tests/SARTTest";
-import type { FocusStats } from "./tests/FocusDurationTest";
 import type { StroopStats } from "./tests/StroopTest";
 import type { PVTStats } from "./tests/PVTTest";
-import type { DelayDiscountingStats } from "./tests/DelayDiscountingTest";
 import type { GoNoGoStats } from "./tests/GoNoGoTest";
 import type { SelfReportData } from "./QuestionnaireScreen";
 
@@ -21,10 +19,8 @@ interface ResultsScreenProps {
 
 interface TestScores {
   sart: number | null;
-  focus: number | null;
   stroop: number | null;
   pvt: number | null;
-  delay: number | null;
   gonogo: number | null;
 }
 
@@ -45,7 +41,7 @@ function scoreLinear(value: number, goodThreshold: number, badThreshold: number)
 }
 
 function calculateScores(): TestScores {
-  const scores: TestScores = { sart: null, focus: null, stroop: null, pvt: null, delay: null, gonogo: null };
+  const scores: TestScores = { sart: null, stroop: null, pvt: null, gonogo: null };
 
   const sartRaw = sessionStorage.getItem("sart");
   if (sartRaw) {
@@ -53,23 +49,17 @@ function calculateScores(): TestScores {
     scores.sart = scoreLinear(s.commissionRate * 100, 11, 30);
   }
 
-  const focusRaw = sessionStorage.getItem("focus");
-  if (focusRaw) {
-    const f = JSON.parse(focusRaw) as FocusStats;
-    if (f.firstSkipUrgeTime === null) {
-      scores.focus = 100;
-    } else {
-      const t = f.firstSkipUrgeTime;
-      if (t >= 150000) scores.focus = 100;
-      else if (t <= 40000) scores.focus = 20;
-      else scores.focus = 20 + 80 * (t - 40000) / (150000 - 40000);
-    }
-  }
-
   const stroopRaw = sessionStorage.getItem("stroop");
   if (stroopRaw) {
     const s = JSON.parse(stroopRaw) as StroopStats;
-    scores.stroop = scoreLinear(s.interferenceScore, 100, 400);
+    // C3 accuracy (good: ≥85%, bad: ≤45% — chance is 25%)
+    const c3AccScore = scoreLinear(s.condition3.accuracy, 85, 45);
+    // Interference effect (good: ≤100ms, bad: ≥400ms)
+    const interfScore = scoreLinear(s.interferenceScore, 100, 400);
+    // Harmonic mean: collapses to 0 if either component is 0,
+    // preventing high scores from random clicking (which gives ~0 interference but ~0 C3 accuracy)
+    const denom = c3AccScore + interfScore;
+    scores.stroop = denom > 0 ? Math.round(2 * c3AccScore * interfScore / denom) : 0;
   }
 
   const pvtRaw = sessionStorage.getItem("pvt");
@@ -78,16 +68,6 @@ function calculateScores(): TestScores {
     const rtScore = scoreLinear(p.medianRT, 300, 500);
     const lapseScore = scoreLinear(p.lapseRate * 100, 5, 25);
     scores.pvt = (rtScore + lapseScore) / 2;
-  }
-
-  const delayRaw = sessionStorage.getItem("delay");
-  if (delayRaw) {
-    const d = JSON.parse(delayRaw) as DelayDiscountingStats;
-    const k = Math.max(d.medianK, 0.0001);
-    const logK = Math.log10(k);
-    const logGood = Math.log10(0.01);
-    const logBad = Math.log10(0.10);
-    scores.delay = scoreLinear(logK, logGood, logBad);
   }
 
   const gonogoRaw = sessionStorage.getItem("gonogo");
@@ -183,10 +163,8 @@ interface TestDetail {
 
 function buildDetails(scores: TestScores): TestDetail[] {
   const sartRaw = sessionStorage.getItem("sart");
-  const focusRaw = sessionStorage.getItem("focus");
   const stroopRaw = sessionStorage.getItem("stroop");
   const pvtRaw = sessionStorage.getItem("pvt");
-  const delayRaw = sessionStorage.getItem("delay");
   const gonogoRaw = sessionStorage.getItem("gonogo");
 
   const details: TestDetail[] = [];
@@ -204,26 +182,6 @@ function buildDetails(scores: TestScores): TestDetail[] {
         whyItMatters: "Commission errors (responding to the target) reflect failures of inhibitory control and sustained attention. Higher variability in reaction time (CV) is a marker of attentional lapses, even when accuracy seems acceptable. These metrics predict real-world risks like distracted driving.",
         citation: "Robertson, I. H., Manly, T., Andrade, J., Baddeley, B. T., & Yiend, J. (1997). 'Oops!': Performance correlates of everyday attentional failures in traumatic brain injured and normal subjects. Neuropsychologia, 35(6), 747–758.",
         citationUrl: "https://doi.org/10.1016/S0028-3932(97)00084-3",
-      },
-    });
-  }
-
-  if (focusRaw) {
-    const f = JSON.parse(focusRaw) as FocusStats;
-    const skipTime = f.firstSkipUrgeTime;
-    details.push({
-      key: "focus",
-      name: "Focus Duration",
-      score: scores.focus,
-      metric: skipTime === null
-        ? "First skip urge: never (read the whole passage!)"
-        : `First skip urge at: ${(skipTime / 1000).toFixed(1)}s | Chose to ${f.choseToStop ? "stop" : "continue"}`,
-      baseline: "Pre-digital (2004): ~2.5 min median focus span | 2020s: ~40 seconds (Mark, 2023)",
-      learnMore: {
-        whatItMeasures: "This test captures the time until you first feel the urge to switch away from a single piece of content — your natural attention span before external distraction. It's adapted from Gloria Mark's workplace attention research at UC Irvine.",
-        whyItMatters: "The collapse of sustained attention is one of the most documented consequences of heavy social media use. Short-form video (TikTok, Reels, Shorts) trains the brain to expect rapid context switches, eroding the ability to remain with a single stimulus. The 2.5-minute pre-digital baseline has dropped to ~40 seconds in modern populations.",
-        citation: "Mark, G. (2023). Attention Span: A Groundbreaking Way to Restore Balance, Happiness and Productivity. Hanover Square Press. Original research: Mark, G., Gudith, D., & Klocke, U. (2008). The cost of interrupted work: More speed and stress. CHI '08.",
-        citationUrl: "https://doi.org/10.1145/1357054.1357072",
       },
     });
   }
@@ -258,23 +216,6 @@ function buildDetails(scores: TestScores): TestDetail[] {
         whyItMatters: "PVT lapse rate is more sensitive to cumulative sleep loss and attentional impairment than subjective sleepiness ratings. People severely impaired by sleep deprivation often don't feel impaired — but the lapses appear. Heavy social media use (especially late-night) is strongly associated with disrupted sleep and elevated PVT lapse rates.",
         citation: "Basner, M., & Dinges, D. F. (2011). Maximizing sensitivity of the psychomotor vigilance test (PVT) to sleep loss. Sleep, 34(5), 581–591.",
         citationUrl: "https://doi.org/10.1093/sleep/34.5.581",
-      },
-    });
-  }
-
-  if (delayRaw) {
-    const d = JSON.parse(delayRaw) as DelayDiscountingStats;
-    details.push({
-      key: "delay",
-      name: "Delay Discounting",
-      score: scores.delay,
-      metric: `Discount rate (k): ${d.medianK.toFixed(4)} (lower = more patient) | Indifference points across delays from 1 to 365 days`,
-      baseline: "Patient adults: k < 0.01 | Average: k ≈ 0.02–0.05 | Highly impulsive: k > 0.10",
-      learnMore: {
-        whatItMeasures: "Delay discounting measures how steeply you devalue rewards as they become more distant in time. The hyperbolic discount rate k captures your preference for instant gratification: higher k means future rewards feel nearly worthless compared to immediate ones.",
-        whyItMatters: "High discount rates (impulsive choice) are associated with addiction, poor financial decisions, and difficulty pursuing long-term goals. Adolescents naturally discount more steeply than adults, but social media — with its instant dopamine hits — may steepen this further. k is one of the most robust quantitative predictors of self-control across domains.",
-        citation: "Mazur, J. E. (1987). An adjusting procedure for studying delayed reinforcement. In M. L. Commons et al. (Eds.), Quantitative analyses of behavior: Vol. 5. The effect of delay and of intervening events on reinforcement value (pp. 55–73). Erlbaum.",
-        citationUrl: "https://doi.org/10.1007/s40614-014-0011-4",
       },
     });
   }
@@ -445,12 +386,12 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
               <p className="text-sm font-medium text-center text-primary mb-1">
                 You're viewing someone else's results
               </p>
-              {testsCompleted < 6 && (
+              {testsCompleted < 4 && (
                 <p className="text-xs text-center text-muted-foreground mb-2">
-                  Heads up: these are partial results — only {testsCompleted} of 6 tests were completed. For the full picture, they should finish the test.
+                  Heads up: these are partial results — only {testsCompleted} of 4 tests were completed. For the full picture, they should finish the test.
                 </p>
               )}
-              <Button className={testsCompleted < 6 ? "w-full" : "w-full mt-2"} size="sm" onClick={onRestart}>
+              <Button className={testsCompleted < 4 ? "w-full" : "w-full mt-2"} size="sm" onClick={onRestart}>
                 Take the test yourself →
               </Button>
             </CardContent>
@@ -489,7 +430,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
                   {getSummary(composite)}
                 </p>
                 <p className="text-xs text-muted-foreground text-right">
-                  Based on {testsCompleted} of 6 tests
+                  Based on {testsCompleted} of 4 tests
                 </p>
               </>
             ) : (
