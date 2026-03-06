@@ -137,6 +137,12 @@ const result = await Bun.build({
 
 const end = performance.now();
 
+// Copy static assets to dist
+await Bun.write(
+  path.join(outdir, "og-image.png"),
+  Bun.file(path.join("src", "og-image.png")),
+);
+
 const outputTable = result.outputs.map(output => ({
   File: path.relative(process.cwd(), output.path),
   Type: output.kind,

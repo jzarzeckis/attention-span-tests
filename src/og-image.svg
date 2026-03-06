@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#0d2a18"/>
+      <stop offset="45%" stop-color="#080c10"/>
+      <stop offset="100%" stop-color="#04050a"/>
+    </radialGradient>
+
+    <!-- Title gradient: lime → cyan -->
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b9ff6a"/>
+      <stop offset="55%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+
+    <!-- Glow filter for brain -->
+    <filter id="brainGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow filter for title text -->
+    <filter id="titleGlow" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Dot grid pattern -->
+    <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#ffffff" opacity="0.045"/>
+    </pattern>
+
+    <!-- Scanline pattern for texture -->
+    <pattern id="scanlines" x="0" y="0" width="1" height="4" patternUnits="userSpaceOnUse">
+      <rect width="1200" height="1" fill="#000000" opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Dot grid overlay -->
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <!-- Green ambient glow blobs -->
+  <ellipse cx="600" cy="200" rx="480" ry="280" fill="#4ade80" opacity="0.03"/>
+  <ellipse cx="600" cy="180" rx="260" ry="160" fill="#86efac" opacity="0.04"/>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="1200" height="3" fill="url(#titleGrad)" opacity="0.85"/>
+
+  <!-- Left vertical accent -->
+  <rect x="0" y="0" width="3" height="630" fill="url(#titleGrad)" opacity="0.25"/>
+
+  <!-- Right vertical accent -->
+  <rect x="1197" y="0" width="3" height="630" fill="url(#titleGrad)" opacity="0.25"/>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="627" width="1200" height="3" fill="url(#titleGrad)" opacity="0.4"/>
+
+  <!-- =================== BRAIN ICON =================== -->
+  <!-- Brain centered at (600, 148), scale 3.6 from original 64px favicon paths -->
+  <!-- Original paths have brain from ~(18,18) to ~(46,46), center ~(32,32) -->
+  <!-- translate(600 - 32*3.6, 148 - 32*3.6) = translate(484.8, 32.8) -->
+  <g transform="translate(484.8, 32.8) scale(3.6)" filter="url(#brainGlow)">
+    <!-- Left hemisphere -->
+    <path d="M32 18 C28 18, 22 20, 20 25 C18 28, 18 31, 19 34 C20 37, 19 40, 21 42 C23 44, 26 44, 28 43 C29 45, 30 46, 32 46 L32 18Z"
+          fill="none" stroke="#4ade80" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Right hemisphere -->
+    <path d="M32 18 C36 18, 42 20, 44 25 C46 28, 46 31, 45 34 C44 37, 45 40, 43 42 C41 44, 38 44, 36 43 C35 45, 34 46, 32 46 L32 18Z"
+          fill="none" stroke="#4ade80" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Brain folds - left -->
+    <path d="M23 26 C24 24, 27 23, 28 25" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M21 32 C22 30, 25 29, 26 31" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M22 38 C23 36, 26 36, 27 38" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- Brain folds - right -->
+    <path d="M41 26 C40 24, 37 23, 36 25" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M43 32 C42 30, 39 29, 38 31" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M42 38 C41 36, 38 36, 37 38" fill="none" stroke="#86efac" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- Center divider -->
+    <line x1="32" y1="18" x2="32" y2="46" stroke="#4ade80" stroke-width="1.2" stroke-dasharray="3,2.5"/>
+    <!-- Pulse ring -->
+    <circle cx="32" cy="32" r="18" fill="none" stroke="#4ade80" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4"/>
+  </g>
+
+  <!-- =================== MAIN TITLE =================== -->
+  <text
+    x="600" y="308"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="128"
+    font-weight="900"
+    text-anchor="middle"
+    letter-spacing="-5"
+    fill="url(#titleGrad)"
+    filter="url(#titleGlow)">BRAINROT</text>
+
+  <!-- METER subtitle — wide tracked, faded -->
+  <text
+    x="600" y="362"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="38"
+    font-weight="300"
+    text-anchor="middle"
+    letter-spacing="22"
+    fill="#ffffff"
+    opacity="0.38">METER</text>
+
+  <!-- Horizontal divider -->
+  <line x1="440" y1="387" x2="760" y2="387" stroke="#4ade80" stroke-width="1" opacity="0.3"/>
+
+  <!-- =================== TAGLINE =================== -->
+  <text
+    x="600" y="432"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="24"
+    font-weight="400"
+    text-anchor="middle"
+    fill="#ffffff"
+    opacity="0.68">find out how fried your attention span really is.</text>
+
+  <!-- =================== BADGE PILLS =================== -->
+  <!-- Pill 1: 6 cognitive tests -->
+  <rect x="304" y="462" width="192" height="40" rx="20"
+        fill="#4ade80" fill-opacity="0.10"
+        stroke="#4ade80" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="400" y="487"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="15" font-weight="600"
+        text-anchor="middle"
+        fill="#4ade80">6 cognitive tests</text>
+
+  <!-- Pill 2: ~15-20 min -->
+  <rect x="514" y="462" width="150" height="40" rx="20"
+        fill="#ffffff" fill-opacity="0.06"
+        stroke="#ffffff" stroke-width="1" stroke-opacity="0.18"/>
+  <text x="589" y="487"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="15" font-weight="500"
+        text-anchor="middle"
+        fill="#ffffff" opacity="0.55">~15-20 min</text>
+
+  <!-- Pill 3: no mercy -->
+  <rect x="682" y="462" width="128" height="40" rx="20"
+        fill="#ffffff" fill-opacity="0.06"
+        stroke="#ffffff" stroke-width="1" stroke-opacity="0.18"/>
+  <text x="746" y="487"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="15" font-weight="500"
+        text-anchor="middle"
+        fill="#ffffff" opacity="0.55">no mercy</text>
+
+  <!-- =================== BOTTOM DESCRIPTOR =================== -->
+  <text
+    x="600" y="568"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="13"
+    font-weight="400"
+    text-anchor="middle"
+    fill="#ffffff"
+    opacity="0.22"
+    letter-spacing="2">ATTENTION  ·  IMPULSE CONTROL  ·  FOCUS DURATION  ·  REACTION TIME</text>
+
+  <!-- Scanline texture overlay -->
+  <rect width="1200" height="630" fill="url(#scanlines)"/>
+</svg>
