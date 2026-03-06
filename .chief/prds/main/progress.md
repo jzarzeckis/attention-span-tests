@@ -5,6 +5,16 @@
 - Screen state managed in `App.tsx` using the `Screen` union type from `src/types.ts`
 - build.ts has pre-existing TS errors (not from our code); typecheck passes for src/
 
+## 2026-03-06 - US-003
+- What was implemented: Focus Duration Test with a slowly-revealing 18-sentence passage (one sentence every 5s). User can press "I want to skip" at any time; they're then prompted to continue or stop. Timer hidden during test, shown only on completion screen. Results (firstSkipUrgeTime, choseToStop, totalTime) saved to sessionStorage as "focus". TestScreen now routes to FocusDurationTest for the "focus" test ID.
+- Files changed: src/screens/tests/FocusDurationTest.tsx (new), src/screens/TestScreen.tsx (updated)
+- **Learnings for future iterations:**
+  - For interval-based reveals with pause/resume, track revealed count in both state and a ref (ref for callbacks, state for render)
+  - `setInterval` stored in `useRef<ReturnType<typeof setInterval> | undefined>(undefined)` — clear and restart for pause/resume logic
+  - Keep `phaseRef` in sync with `setPhase()` for all state transitions accessed in callbacks
+  - The "I want to skip" button only appears if not fully revealed; once fully revealed, show "I finished reading" instead
+---
+
 ## 2026-03-06 - US-002
 - What was implemented: Full SART test with instruction screen, 9-trial practice round (with per-trial correct/error feedback via Badge), 225-trial main test (25 shuffled cycles of digits 1-9, 250ms stimulus / 900ms ISI = 1150ms SOA), and results saved to sessionStorage (commissionErrors, omissionErrors, meanRT, rtCV). TestScreen now routes to SARTTest for the "sart" test ID; all other tests remain placeholders.
 - Files changed: src/screens/tests/SARTTest.tsx (new), src/screens/TestScreen.tsx (updated)
