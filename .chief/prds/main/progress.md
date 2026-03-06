@@ -39,6 +39,17 @@
   - `prd.json` may have `"inProgress": true` — remove it when setting `passes: true`
 ---
 
+## 2026-03-06 - US-012
+- What was implemented: Pre-test Self-Report Questionnaire. A new `QuestionnaireScreen` with 5 questions: age (radio), daily TikTok/Reels/Shorts usage (radio), restlessness watching long videos (radio), self-rated attention (slider 1-5), total screen time (radio). Answers stored as `selfReport` in sessionStorage. New `questionnaire` screen type added to `Screen` union in types.ts. Flow: Landing → Questionnaire → Tests → Results. "Start over" also clears `selfReport`. `encodeResults` includes selfReport in the shareable hash. ResultsScreen reads selfReport and shows a contextual card explaining how self-report relates to test scores.
+- Files changed: src/components/ui/radio-group.tsx (new — thin Radix wrapper), src/components/ui/slider.tsx (new — thin Radix wrapper), src/screens/QuestionnaireScreen.tsx (new), src/types.ts (added `questionnaire` screen type), src/App.tsx (added questionnaire screen, clear selfReport on restart, decode selfReport in shared links), src/screens/ResultsScreen.tsx (added selfReport context card, included selfReport in encodeResults)
+- **Learnings for future iterations:**
+  - `@radix-ui/react-radio-group` and `@radix-ui/react-slider` are available as transitive deps of the `radix-ui` unified package (v1.4.3) — create thin wrappers in `src/components/ui/`
+  - For mobile-friendly radio options, use large card-style button elements with a manual circle indicator (styled div) rather than the default small Radix RadioGroupItem — more tappable and visually clear
+  - `getSelfReportContext` generates different messages based on usage+score combos for personalized feedback
+  - The `QuestionnaireScreen` uses `RadioGroup` from Radix for accessibility semantics but renders custom `RadioCard` buttons visually
+  - `prd.json` may have `"inProgress": true` — always remove it when marking `passes: true`
+---
+
 ## Codebase Patterns
 - `vercel.json` has SPA rewrite rule for client-side routing
 - `@/*` aliases map to `./src/*` (see tsconfig.json paths)
