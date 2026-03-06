@@ -5,6 +5,16 @@
 - Screen state managed in `App.tsx` using the `Screen` union type from `src/types.ts`
 - build.ts has pre-existing TS errors (not from our code); typecheck passes for src/
 
+## 2026-03-06 - US-006
+- What was implemented: Delay Discounting Task with adaptive bisection staircase. Tests 5 delays (1, 7, 30, 180, 365 days) × 5 rounds each = 25 total binary choices. For each delay, bisects the immediate reward amount ($1-$99 vs $100 delayed) to find the indifference point. Calculates k per delay via hyperbolic model (k = (A/V - 1) / D), reports medianK across all delays. Results saved to sessionStorage as "delay". TestScreen now routes "delay" to DelayDiscountingTest.
+- Files changed: src/screens/tests/DelayDiscountingTest.tsx (new), src/screens/TestScreen.tsx (updated)
+- **Learnings for future iterations:**
+  - Bisection staircase doesn't need timers or refs — it's purely user-driven, so useState is sufficient (no stale closure risk)
+  - Immediately after each choice, lo/hi/round/delayIndex all update synchronously via setState; track cross-boundary state (last indifference point) via local variables before calling setters
+  - Card components as `<button>` wrappers work well for large tappable choices; use `hover:bg-accent` and `hover:border-primary` for visual feedback
+  - prd.json may have `"inProgress": true` added by the orchestrator; when updating passes, remove that field too
+---
+
 ## 2026-03-06 - US-005
 - What was implemented: Psychomotor Vigilance Task (PVT) with 30 trials. A red circle appears at random ISI (2-10s); user taps it as fast as possible. Records medianRT, meanRT, lapses (RT>500ms), falseStarts, saved to sessionStorage as "pvt". The stimulus shows a live elapsed-ms counter while visible. False starts flash "Too early!" feedback. TestScreen now routes "pvt" to PVTTest.
 - Files changed: src/screens/tests/PVTTest.tsx (new), src/screens/TestScreen.tsx (updated)
