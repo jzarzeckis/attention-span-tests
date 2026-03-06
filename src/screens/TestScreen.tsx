@@ -6,6 +6,7 @@ import { SARTTest } from "./tests/SARTTest";
 import { FocusDurationTest } from "./tests/FocusDurationTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
+import { DelayDiscountingTest } from "./tests/DelayDiscountingTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -53,6 +54,9 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     }
     if (test?.id === "pvt") {
       return <PVTTest onComplete={onNext} />;
+    }
+    if (test?.id === "delay") {
+      return <DelayDiscountingTest onComplete={onNext} />;
     }
     return (
       <PlaceholderTest
