@@ -5,6 +5,7 @@ import { TEST_LIST } from "@/types";
 import { SARTTest } from "./tests/SARTTest";
 import { FocusDurationTest } from "./tests/FocusDurationTest";
 import { StroopTest } from "./tests/StroopTest";
+import { PVTTest } from "./tests/PVTTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -49,6 +50,9 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     }
     if (test?.id === "stroop") {
       return <StroopTest onComplete={onNext} />;
+    }
+    if (test?.id === "pvt") {
+      return <PVTTest onComplete={onNext} />;
     }
     return (
       <PlaceholderTest
