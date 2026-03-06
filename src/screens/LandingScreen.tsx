@@ -4,9 +4,12 @@ import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
   onStart: () => void;
+  hasProgress: boolean;
+  onContinue: () => void;
+  onStartOver: () => void;
 }
 
-export function LandingScreen({ onStart }: LandingScreenProps) {
+export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }: LandingScreenProps) {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
@@ -40,9 +43,20 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
             <p className="text-xs text-muted-foreground text-center">
               Takes approximately 15-20 minutes. Find a quiet place and give it your full attention.
             </p>
-            <Button className="w-full" size="lg" onClick={onStart}>
-              Start Test
-            </Button>
+            {hasProgress ? (
+              <>
+                <Button className="w-full" size="lg" onClick={onContinue}>
+                  Continue where you left off
+                </Button>
+                <Button className="w-full" size="lg" variant="outline" onClick={onStartOver}>
+                  Start over
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full" size="lg" onClick={onStart}>
+                Start Test
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </div>
