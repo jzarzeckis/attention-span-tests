@@ -5,6 +5,16 @@
 - Screen state managed in `App.tsx` using the `Screen` union type from `src/types.ts`
 - build.ts has pre-existing TS errors (not from our code); typecheck passes for src/
 
+## 2026-03-06 - US-005
+- What was implemented: Psychomotor Vigilance Task (PVT) with 30 trials. A red circle appears at random ISI (2-10s); user taps it as fast as possible. Records medianRT, meanRT, lapses (RT>500ms), falseStarts, saved to sessionStorage as "pvt". The stimulus shows a live elapsed-ms counter while visible. False starts flash "Too early!" feedback. TestScreen now routes "pvt" to PVTTest.
+- Files changed: src/screens/tests/PVTTest.tsx (new), src/screens/TestScreen.tsx (updated)
+- **Learnings for future iterations:**
+  - For waiting→active→next-trial flow, keep `stimulusVisibleRef` in sync with `setStimulusVisible()` — tap handler reads the ref, not state
+  - `scheduleNextStimulus` and `finishTrial` are interdependent; avoid circular deps by putting scheduleNextStimulus call inside finishTrial body (not in its deps array) with `// eslint-disable-line`
+  - Live elapsed counter: use `setInterval` with `performance.now() - stimulusStartRef.current`; clear in finishTrial and in the cleanup effect
+  - prd.json may have `"inProgress": true` added by the orchestrator — edit just that line, don't rewrite the whole file
+---
+
 ## 2026-03-06 - US-004
 - What was implemented: Stroop Color-Word Test with 3 conditions: (1) word reading in black ink, (2) color naming (rectangles), (3) incongruent Stroop. Each condition has 20 trials; 3-trial practice with feedback before condition 3. Records accuracy + meanRT per condition and interferenceScore (C3 meanRT - C2 meanRT) saved to sessionStorage as "stroop". TestScreen now routes "stroop" to StroopTest.
 - Files changed: src/screens/tests/StroopTest.tsx (new), src/screens/TestScreen.tsx (updated)
