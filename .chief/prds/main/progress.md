@@ -5,6 +5,16 @@
 - Screen state managed in `App.tsx` using the `Screen` union type from `src/types.ts`
 - build.ts has pre-existing TS errors (not from our code); typecheck passes for src/
 
+## 2026-03-06 - US-004
+- What was implemented: Stroop Color-Word Test with 3 conditions: (1) word reading in black ink, (2) color naming (rectangles), (3) incongruent Stroop. Each condition has 20 trials; 3-trial practice with feedback before condition 3. Records accuracy + meanRT per condition and interferenceScore (C3 meanRT - C2 meanRT) saved to sessionStorage as "stroop". TestScreen now routes "stroop" to StroopTest.
+- Files changed: src/screens/tests/StroopTest.tsx (new), src/screens/TestScreen.tsx (updated)
+- **Learnings for future iterations:**
+  - Color buttons using shadcn `<Button>` with custom `className` (e.g. `bg-red-500 hover:bg-red-600 text-white`) — tailwind-merge in `cn()` correctly overrides the default variant bg classes
+  - For user-input-driven trials (vs timer-driven like SART), stale closure risk is lower since there's no recursive setTimeout; only one short feedback-delay timer
+  - `inkColor: null` = black ink (condition 1), `inkColor: Color` = colored ink (condition 3); `word: null` = show rectangle (condition 2)
+  - Capture `isLast = nextIdx >= stimuli.length` as a local variable before setTimeout to avoid stale `stimuli.length` in callback
+---
+
 ## 2026-03-06 - US-003
 - What was implemented: Focus Duration Test with a slowly-revealing 18-sentence passage (one sentence every 5s). User can press "I want to skip" at any time; they're then prompted to continue or stop. Timer hidden during test, shown only on completion screen. Results (firstSkipUrgeTime, choseToStop, totalTime) saved to sessionStorage as "focus". TestScreen now routes to FocusDurationTest for the "focus" test ID.
 - Files changed: src/screens/tests/FocusDurationTest.tsx (new), src/screens/TestScreen.tsx (updated)
