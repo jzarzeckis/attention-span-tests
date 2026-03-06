@@ -11,13 +11,13 @@
         "Navigation flow: Landing -\u003e Test sequence -\u003e Results",
         "Mobile-first responsive layout that works on iPhone SE (375px) through iPad (1024px)",
         "Progress indicator showing which test you're on (e.g., \"Test 2 of 6\")",
-        "Uses shadcn components for UI elements",
+        "Uses shadcn components idiomatically for ALL UI elements (buttons, cards, progress bars, dialogs, etc.) -- do NOT build custom components when a shadcn equivalent exists (see shad_llms.txt for available components)",
         "Built with Bun.serve() and HTML imports, React frontend",
         "Deploys to Vercel as a static site",
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
       ],
       "priority": 1,
-      "passes": true
+      "passes": false
     },
     {
       "id": "US-002",
@@ -29,12 +29,13 @@
         "225 trials total (25 cycles of digits 1-9 in random order), taking ~4-5 minutes",
         "Records: commission errors (tapping on 3), omission errors (missing a non-3 digit), mean reaction time (ms), reaction time variability (coefficient of variation = SD/mean)",
         "Brief instruction screen before the test explaining what to do, with a practice round of 9 trials",
+        "UI uses shadcn Button for tap targets, Card for instruction/result screens, Progress for trial progress, and Badge for feedback indicators",
         "Baseline comparison: healthy adult commission error rate of 8-11%, mean RT of 332-375ms",
         "Results stored in sessionStorage upon completion",
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
       ],
       "priority": 2,
-      "passes": true
+      "passes": false
     },
     {
       "id": "US-003",
@@ -50,7 +51,7 @@
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
       ],
       "priority": 2,
-      "passes": true
+      "passes": false
     },
     {
       "id": "US-004",
@@ -58,9 +59,9 @@
       "description": "As a user, I want to take a Stroop test that measures my ability to suppress automatic responses, so that my executive control is assessed.",
       "acceptanceCriteria": [
         "Three conditions presented in sequence: (1) read color words in black ink, (2) name ink colors of colored rectangles, (3) name the ink color of incongruent color words (e.g., \"RED\" displayed in blue)",
-        "Each condition: 20 stimuli, user selects from 4 color buttons (Red, Blue, Green, Yellow)",
+        "Each condition: 20 stimuli, user selects from 4 color buttons using shadcn Button components (Red, Blue, Green, Yellow)",
         "Records: accuracy and mean RT per condition, interference score (condition 3 RT minus condition 2 RT)",
-        "Brief instructions with 3 practice trials before the incongruent condition",
+        "Brief instructions (using shadcn Card) with 3 practice trials before the incongruent condition",
         "Baseline comparison: interference effect norms stratified by age group",
         "Results stored in sessionStorage upon completion",
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
@@ -91,7 +92,7 @@
       "acceptanceCriteria": [
         "Series of 20-27 binary choices: e.g., \"$50 now\" vs \"$100 in 30 days\"",
         "Amounts and delays adjust based on previous choices (staircase procedure) to find the indifference point",
-        "Choices presented as large tappable cards, mobile-friendly",
+        "Choices presented as large tappable shadcn Card components, mobile-friendly",
         "Records: discount rate (k parameter from hyperbolic model), indifference points at multiple delays",
         "Baseline comparison: normative k values for adolescents from published literature",
         "Results stored in sessionStorage upon completion",
@@ -123,8 +124,8 @@
       "acceptanceCriteria": [
         "Composite score calculated from all completed tests, weighted by how far each metric deviates from baseline",
         "Presented as a \"Your Digital Attention Profile\" with a primary label, e.g., \"Your attention profile matches a typical 2024 heavy-social-media user\" or \"Your attention is in the pre-digital healthy range\"",
-        "Visual score indicator (e.g., a gauge, spectrum bar, or animated number)",
-        "Color-coded: green (healthy baseline range), yellow (moderate deviation), red (significant deviation)",
+        "Visual score indicator using shadcn Progress component (e.g., a spectrum bar or gauge) with animated number",
+        "Color-coded using shadcn Badge variants: green (healthy baseline range), yellow (moderate deviation), red (significant deviation)",
         "Brief 1-2 sentence summary of what the score means",
         "\"See detailed results\" expandable section (see US-009)",
         "Playful, non-clinical tone in the summary",
@@ -138,9 +139,9 @@
       "title": "Detailed Scientific Results",
       "description": "As a user, I want to expand my results to see detailed per-test breakdowns with scientific context, so I can understand exactly what was measured and how I compare.",
       "acceptanceCriteria": [
-        "Each test has an expandable/collapsible section",
-        "Per-test section shows: user's score, baseline norm, percentile or deviation indicator, and a chart/visual comparison",
-        "Each section has a \"Learn more\" expandable that explains: what the test measures, why it matters, which study the baseline comes from (with citation)",
+        "Each test has an expandable/collapsible section using shadcn Collapsible or Accordion component",
+        "Per-test section shows (inside shadcn Card): user's score, baseline norm, percentile or deviation indicator, and a chart/visual comparison",
+        "Each section has a \"Learn more\" expandable (shadcn Collapsible) that explains: what the test measures, why it matters, which study the baseline comes from (with citation)",
         "Citations link to actual papers (DOIs or URLs)",
         "All data comes from the sessionStorage results, no network calls needed",
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
@@ -186,7 +187,7 @@
       "description": "As a user, I want to answer a brief questionnaire about my social media usage before the tests, so my results can be contextualized.",
       "acceptanceCriteria": [
         "4-6 quick questions: estimated daily TikTok/Reels/Shorts usage, age, how often they feel restless watching long videos, self-rated attention (1-5 scale)",
-        "Questions presented as large tappable options, mobile-friendly",
+        "Questions presented using shadcn Radio Group, Slider, and Button components as large tappable options, mobile-friendly",
         "Responses stored in sessionStorage and included in shareable link",
         "Results page references self-reported usage when presenting findings (e.g., \"You report 3+ hours daily on TikTok. Your sustained attention score is...\")",
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
