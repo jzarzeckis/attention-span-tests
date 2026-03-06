@@ -1,3 +1,15 @@
+## 2026-03-06 - US-008
+- What was implemented: Brain Age Results Score screen. Reads all 6 test results from sessionStorage and calculates a composite 0-100 score. Each test is scored individually (SART: commission rate; Focus: first-skip-urge time; Stroop: interference score; PVT: median RT + lapse rate; Delay: log-scale k parameter; GoNoGo: commission rate) then averaged. Score drives: animated progress gauge (requestAnimationFrame ease-out), Badge variant (green/yellow/red), label, and playful summary. "See detailed results" toggle shows per-test Cards with Progress bars, metric strings, and baseline references.
+- Files changed: src/screens/ResultsScreen.tsx (full rewrite)
+- **Learnings for future iterations:**
+  - Animated number via `requestAnimationFrame` + `useRef` for start timestamp + ease-out-quad formula; clean up with `cancelAnimationFrame` in useEffect return
+  - Badge color-coding: "default" (primary = green-tinted), "secondary" (muted = yellow-ish), "destructive" (red) — map score tiers to these variants
+  - scoreLinear handles both "lower is better" and "higher is better" by checking which threshold is larger
+  - For delay discounting k parameter, use log-scale scoring (`Math.log10(k)`) since k spans orders of magnitude
+  - The "See detailed results" toggle is just `useState` bool for US-008; US-009 will replace with full accordion
+  - `prd.json` may have `"inProgress": true` — remove it when setting `passes: true`
+---
+
 ## Codebase Patterns
 - `vercel.json` has SPA rewrite rule for client-side routing
 - `@/*` aliases map to `./src/*` (see tsconfig.json paths)
