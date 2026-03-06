@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "mcp__plugin_playwright_playwright",
+      "Bash(bunx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(rsvg-convert:*)"
+    ]
+  }
+}
