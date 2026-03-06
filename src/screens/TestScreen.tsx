@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
 import { SARTTest } from "./tests/SARTTest";
+import { FocusDurationTest } from "./tests/FocusDurationTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -41,6 +42,9 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   const renderTest = () => {
     if (test?.id === "sart") {
       return <SARTTest onComplete={onNext} />;
+    }
+    if (test?.id === "focus") {
+      return <FocusDurationTest onComplete={onNext} />;
     }
     return (
       <PlaceholderTest
