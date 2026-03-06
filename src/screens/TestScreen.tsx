@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
 import { SARTTest } from "./tests/SARTTest";
 import { FocusDurationTest } from "./tests/FocusDurationTest";
+import { StroopTest } from "./tests/StroopTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -45,6 +46,9 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     }
     if (test?.id === "focus") {
       return <FocusDurationTest onComplete={onNext} />;
+    }
+    if (test?.id === "stroop") {
+      return <StroopTest onComplete={onNext} />;
     }
     return (
       <PlaceholderTest
