@@ -12,4 +12,4 @@ export type TestId = (typeof TEST_LIST)[number]["id"];
 export type Screen =
   | { type: "landing" }
   | { type: "test"; testIndex: number }
-  | { type: "results" };
+  | { type: "results"; isShared?: boolean };

@@ -18,8 +18,35 @@ function hasAnyProgress(): boolean {
   return TEST_LIST.some((test) => sessionStorage.getItem(test.id) !== null);
 }
 
+function decodeSharedResults(encoded: string): boolean {
+  try {
+    const data = JSON.parse(atob(encoded)) as Record<string, unknown>;
+    let loaded = false;
+    for (const test of TEST_LIST) {
+      if (test.id in data) {
+        sessionStorage.setItem(test.id, JSON.stringify(data[test.id]));
+        loaded = true;
+      }
+    }
+    return loaded;
+  } catch {
+    return false;
+  }
+}
+
+function initScreen(): Screen {
+  const hash = window.location.hash;
+  if (hash.startsWith("#r=")) {
+    const encoded = hash.slice(3);
+    if (decodeSharedResults(encoded)) {
+      return { type: "results", isShared: true };
+    }
+  }
+  return { type: "landing" };
+}
+
 export function App() {
-  const [screen, setScreen] = useState<Screen>({ type: "landing" });
+  const [screen, setScreen] = useState<Screen>(initScreen);
 
   const handleStart = () => setScreen({ type: "test", testIndex: 0 });
 
@@ -62,7 +89,7 @@ export function App() {
     return <TestScreen testIndex={screen.testIndex} onNext={handleNext} />;
   }
 
-  return <ResultsScreen onRestart={handleRestart} />;
+  return <ResultsScreen onRestart={handleRestart} isShared={screen.type === "results" && !!screen.isShared} />;
 }
 
 export default App;

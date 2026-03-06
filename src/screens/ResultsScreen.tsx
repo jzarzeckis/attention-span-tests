@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronDown, ChevronUp, Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,6 +14,22 @@ import type { GoNoGoStats } from "./tests/GoNoGoTest";
 
 interface ResultsScreenProps {
   onRestart: () => void;
+  isShared?: boolean;
+}
+
+function encodeResults(): string {
+  const data: Record<string, unknown> = {};
+  for (const id of ["sart", "focus", "stroop", "pvt", "delay", "gonogo"] as const) {
+    const raw = sessionStorage.getItem(id);
+    if (raw) data[id] = JSON.parse(raw);
+  }
+  return btoa(JSON.stringify(data));
+}
+
+function buildShareUrl(): string {
+  const encoded = encodeResults();
+  const base = window.location.href.split("#")[0];
+  return `${base}#r=${encoded}`;
 }
 
 interface TestScores {
@@ -401,16 +417,43 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
   );
 }
 
-export function ResultsScreen({ onRestart }: ResultsScreenProps) {
+export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProps) {
   const scores = calculateScores();
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
   const [showDetails, setShowDetails] = useState(false);
+  const [copied, setCopied] = useState(false);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
+
+  const handleShare = useCallback(() => {
+    const url = buildShareUrl();
+    window.history.replaceState(null, "", url);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      // fallback: show the URL was set in hash
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }, []);
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
+        {isShared && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-sm font-medium text-center text-primary mb-2">
+                You're viewing someone else's results
+              </p>
+              <Button className="w-full" size="sm" onClick={onRestart}>
+                Take the test yourself →
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Your Results</h1>
           <p className="text-muted-foreground">Your Digital Attention Profile</p>
@@ -464,13 +507,26 @@ export function ResultsScreen({ onRestart }: ResultsScreenProps) {
 
           <CardFooter className="flex-col gap-3">
             {composite !== null && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowDetails((v) => !v)}
-              >
-                {showDetails ? "Hide detailed results" : "See detailed results"}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowDetails((v) => !v)}
+                >
+                  {showDetails ? "Hide detailed results" : "See detailed results"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleShare}
+                >
+                  {copied ? (
+                    <><Check className="h-4 w-4 mr-2 text-green-600" />Link copied!</>
+                  ) : (
+                    <><Share2 className="h-4 w-4 mr-2" />Share Results</>
+                  )}
+                </Button>
+              </>
             )}
             <Button className="w-full" size="lg" onClick={onRestart}>
               Take Test Again
