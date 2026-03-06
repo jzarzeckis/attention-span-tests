@@ -16,8 +16,7 @@
         "Deploys to Vercel as a static site"
       ],
       "priority": 1,
-      "passes": false,
-      "inProgress": true
+      "passes": true
     },
     {
       "id": "US-002",
