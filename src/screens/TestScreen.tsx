@@ -4,6 +4,8 @@ import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "../types";
 import { SARTTest } from "../tests/SARTTest";
 import type { SARTResult } from "../tests/SARTTest";
+import { FocusDurationTest } from "../tests/FocusDurationTest";
+import type { FocusDurationResult } from "../tests/FocusDurationTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -21,9 +23,17 @@ export function TestScreen({ testIndex, onComplete }: TestScreenProps) {
     onComplete();
   };
 
+  const handleFocusComplete = (result: FocusDurationResult) => {
+    sessionStorage.setItem("focus-result", JSON.stringify(result));
+    onComplete();
+  };
+
   const renderTest = () => {
     if (test.id === "sart") {
       return <SARTTest onComplete={handleSARTComplete} />;
+    }
+    if (test.id === "focus") {
+      return <FocusDurationTest onComplete={handleFocusComplete} />;
     }
 
     // Placeholder for other tests
