@@ -1,3 +1,12 @@
+## 2026-03-06 - US-011
+- What was implemented: Session Progress Persistence. On app load, `hasAnyProgress()` checks sessionStorage for any stored test results. If found, LandingScreen shows "Continue where you left off" and "Start over" buttons instead of "Start Test". `getResumeIndex()` finds the first test without saved results to resume from (or goes to results if all are done). Starting over calls `sessionStorage.removeItem` for each test ID.
+- Files changed: src/App.tsx (updated — added getResumeIndex, hasAnyProgress, handleContinue, handleRestart clears storage), src/screens/LandingScreen.tsx (updated — added hasProgress, onContinue, onStartOver props)
+- **Learnings for future iterations:**
+  - Tests already saved results to sessionStorage by test ID (sart, focus, stroop, pvt, delay, gonogo) — no changes needed to individual test components
+  - `handleRestart` in App.tsx already called `setScreen({ type: "landing" })` but didn't clear sessionStorage — add the clear loop there
+  - `prd.json` may have `"inProgress": true` set by the orchestrator — always remove it when marking `passes: true`
+---
+
 ## 2026-03-06 - US-009
 - What was implemented: Detailed Scientific Results. Each test gets a Collapsible card (expand/collapse via ChevronDown/Up icon). Expanded content shows: deviation status badge, your exact metrics, baseline norm text. Inner "Learn more" Collapsible shows what the test measures, why it matters, and a study citation with DOI link (opens in new tab). Created `src/components/ui/collapsible.tsx` wrapping `@radix-ui/react-collapsible`. All data from sessionStorage, no network calls.
 - Files changed: src/components/ui/collapsible.tsx (new), src/screens/ResultsScreen.tsx (updated — added TestDetail.learnMore field, TestDetailCard component, replaced simple card list)
