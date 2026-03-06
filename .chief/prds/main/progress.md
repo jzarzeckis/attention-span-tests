@@ -1,3 +1,13 @@
+## 2026-03-06 - US-010
+- What was implemented: Shareable Results Link. Results encoded as `btoa(JSON.stringify({sart,focus,...}))` into URL hash `#r=<base64>`. `initScreen()` lazy initializer in App.tsx checks `window.location.hash` on mount — if `#r=` found, decodes and writes each test's data to sessionStorage, then initializes with `{ type: "results", isShared: true }`. ResultsScreen shows a banner card "You're viewing someone else's results" with CTA when `isShared=true`. "Share Results" button calls `navigator.clipboard.writeText(url)` and shows "Link copied!" with Check icon for 2.5s.
+- Files changed: src/types.ts (added `isShared?` to results screen), src/App.tsx (added `decodeSharedResults`, `initScreen`, pass `isShared` to ResultsScreen), src/screens/ResultsScreen.tsx (added `encodeResults`, `buildShareUrl`, share button with clipboard + visual confirmation, shared banner)
+- **Learnings for future iterations:**
+  - Use lazy initializer for `useState` (`useState(initScreen)` not `useState(initScreen())`) to avoid running on every render
+  - `btoa(JSON.stringify(...))` works fine for all test data since all values are numbers/booleans/null — no Unicode
+  - `window.history.replaceState(null, "", url)` updates the URL bar without reload, so user can copy from address bar too
+  - `prd.json` may have `"inProgress": true` added by orchestrator — always remove it when marking `passes: true`
+---
+
 ## 2026-03-06 - US-011
 - What was implemented: Session Progress Persistence. On app load, `hasAnyProgress()` checks sessionStorage for any stored test results. If found, LandingScreen shows "Continue where you left off" and "Start over" buttons instead of "Start Test". `getResumeIndex()` finds the first test without saved results to resume from (or goes to results if all are done). Starting over calls `sessionStorage.removeItem` for each test ID.
 - Files changed: src/App.tsx (updated — added getResumeIndex, hasAnyProgress, handleContinue, handleRestart clears storage), src/screens/LandingScreen.tsx (updated — added hasProgress, onContinue, onStartOver props)
