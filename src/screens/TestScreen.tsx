@@ -7,6 +7,7 @@ import { FocusDurationTest } from "./tests/FocusDurationTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
 import { DelayDiscountingTest } from "./tests/DelayDiscountingTest";
+import { GoNoGoTest } from "./tests/GoNoGoTest";
 
 interface TestScreenProps {
   testIndex: number;
@@ -58,9 +59,12 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     if (test?.id === "delay") {
       return <DelayDiscountingTest onComplete={onNext} />;
     }
+    if (test?.id === "gonogo") {
+      return <GoNoGoTest onComplete={onNext} />;
+    }
     return (
       <PlaceholderTest
-        name={test?.name ?? ""}
+        name={(test as { name: string } | undefined)?.name ?? ""}
         onNext={onNext}
         isLastTest={isLastTest}
       />
