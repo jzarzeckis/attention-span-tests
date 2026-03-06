@@ -1,3 +1,13 @@
+## 2026-03-06 - US-009
+- What was implemented: Detailed Scientific Results. Each test gets a Collapsible card (expand/collapse via ChevronDown/Up icon). Expanded content shows: deviation status badge, your exact metrics, baseline norm text. Inner "Learn more" Collapsible shows what the test measures, why it matters, and a study citation with DOI link (opens in new tab). Created `src/components/ui/collapsible.tsx` wrapping `@radix-ui/react-collapsible`. All data from sessionStorage, no network calls.
+- Files changed: src/components/ui/collapsible.tsx (new), src/screens/ResultsScreen.tsx (updated — added TestDetail.learnMore field, TestDetailCard component, replaced simple card list)
+- **Learnings for future iterations:**
+  - `@radix-ui/react-collapsible` is already installed as a transitive dep — create `src/components/ui/collapsible.tsx` as a thin re-export wrapper (Root → Collapsible, CollapsibleTrigger, CollapsibleContent)
+  - `prd.json` may have both `"passes": false` AND `"inProgress": true` — remove `inProgress` entirely when marking passes: true
+  - Nested Collapsibles work fine (outer per-test, inner "learn more") — just use separate `useState` for each open state
+  - Use `CollapsibleTrigger asChild` with `<CardHeader>` for clickable headers; use `asChild` with `<Button>` for trigger buttons
+---
+
 ## 2026-03-06 - US-008
 - What was implemented: Brain Age Results Score screen. Reads all 6 test results from sessionStorage and calculates a composite 0-100 score. Each test is scored individually (SART: commission rate; Focus: first-skip-urge time; Stroop: interference score; PVT: median RT + lapse rate; Delay: log-scale k parameter; GoNoGo: commission rate) then averaged. Score drives: animated progress gauge (requestAnimationFrame ease-out), Badge variant (green/yellow/red), label, and playful summary. "See detailed results" toggle shows per-test Cards with Progress bars, metric strings, and baseline references.
 - Files changed: src/screens/ResultsScreen.tsx (full rewrite)

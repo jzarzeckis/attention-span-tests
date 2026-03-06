@@ -147,7 +147,7 @@
         "All acceptance criteria verified manually via Playwright against the local dev server at localhost:3000"
       ],
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",
