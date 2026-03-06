@@ -11,20 +11,23 @@ interface LandingScreenProps {
 
 export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }: LandingScreenProps) {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center p-4">
+    <div
+      className="flex min-h-svh flex-col items-center justify-center p-4"
+      style={{ backgroundImage: 'radial-gradient(ellipse 90% 50% at 50% -10%, oklch(0.25 0.10 142 / 0.5) 0%, transparent 70%)' }}
+    >
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Attention Span Test</h1>
+          <h1 className="text-5xl font-black tracking-tight bg-gradient-to-br from-primary to-[oklch(0.78_0.20_100)] bg-clip-text text-transparent">Brainrot Meter</h1>
           <p className="text-muted-foreground text-lg">
-            Discover how your focus compares to pre-social-media norms
+            Find out how fried your attention span really is.
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>What to expect</CardTitle>
+            <CardTitle>Six tests. No mercy.</CardTitle>
             <CardDescription>
-              A battery of {TEST_LIST.length} scientifically-grounded cognitive tests measuring your attention, impulse control, and focus duration.
+              {TEST_LIST.length} scientifically-grounded cognitive tests measuring your attention, impulse control, and focus duration. ~15-20 minutes. Results may be humbling.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -41,7 +44,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
           </CardContent>
           <CardFooter className="flex-col gap-3">
             <p className="text-xs text-muted-foreground text-center">
-              Takes approximately 15-20 minutes. Find a quiet place and give it your full attention.
+              ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
             </p>
             {hasProgress ? (
               <>
@@ -54,7 +57,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
               </>
             ) : (
               <Button className="w-full" size="lg" onClick={onStart}>
-                Start Test
+                Check my brainrot
               </Button>
             )}
           </CardFooter>

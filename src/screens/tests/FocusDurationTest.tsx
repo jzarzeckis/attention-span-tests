@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,6 +56,12 @@ export function FocusDurationTest({ onComplete }: Props) {
   const revealedCountRef = useRef(0);
   const revealTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const phaseRef = useRef<Phase>("instructions");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [revealedCount]);
 
   const stopReveal = useCallback(() => {
     if (revealTimerRef.current !== undefined) {
@@ -165,7 +171,7 @@ export function FocusDurationTest({ onComplete }: Props) {
     return (
       <div className="space-y-4">
         <Card>
-          <CardContent className="pt-6 space-y-3 text-sm leading-relaxed max-h-96 overflow-y-auto">
+          <CardContent ref={scrollContainerRef} className="pt-6 space-y-3 text-sm leading-relaxed max-h-96 overflow-y-auto">
             {sentences.map((sentence, i) => (
               <p
                 key={i}

@@ -14,6 +14,7 @@ export interface SelfReportData {
 
 interface QuestionnaireScreenProps {
   onComplete: (data: SelfReportData) => void;
+  onSkip: () => void;
 }
 
 function RadioCard({
@@ -51,7 +52,7 @@ function RadioCard({
   );
 }
 
-export function QuestionnaireScreen({ onComplete }: QuestionnaireScreenProps) {
+export function QuestionnaireScreen({ onComplete, onSkip }: QuestionnaireScreenProps) {
   const [age, setAge] = useState("");
   const [shortFormUsage, setShortFormUsage] = useState("");
   const [restlessness, setRestlessness] = useState("");
@@ -171,7 +172,7 @@ export function QuestionnaireScreen({ onComplete }: QuestionnaireScreenProps) {
         </Card>
 
         <Card>
-          <CardFooter className="pt-4 pb-4">
+          <CardFooter className="pt-4 pb-4 flex-col gap-3">
             <Button
               className="w-full"
               size="lg"
@@ -180,6 +181,13 @@ export function QuestionnaireScreen({ onComplete }: QuestionnaireScreenProps) {
             >
               Start Tests
             </Button>
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            >
+              Skip survey and go straight to tests
+            </button>
           </CardFooter>
         </Card>
       </div>

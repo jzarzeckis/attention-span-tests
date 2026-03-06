@@ -2,6 +2,7 @@
 node_modules
 
 .chief
+.playwright-mcp
 
 # output
 out

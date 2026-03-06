@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronDown, ChevronUp, Share2, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -18,22 +18,6 @@ interface ResultsScreenProps {
   isShared?: boolean;
 }
 
-function encodeResults(): string {
-  const data: Record<string, unknown> = {};
-  for (const id of ["sart", "focus", "stroop", "pvt", "delay", "gonogo"] as const) {
-    const raw = sessionStorage.getItem(id);
-    if (raw) data[id] = JSON.parse(raw);
-  }
-  const selfReportRaw = sessionStorage.getItem("selfReport");
-  if (selfReportRaw) data["selfReport"] = JSON.parse(selfReportRaw);
-  return btoa(JSON.stringify(data));
-}
-
-function buildShareUrl(): string {
-  const encoded = encodeResults();
-  const base = window.location.href.split("#")[0];
-  return `${base}#r=${encoded}`;
-}
 
 interface TestScores {
   sart: number | null;
@@ -122,23 +106,23 @@ function compositeScore(scores: TestScores): number | null {
 }
 
 function getLabel(score: number): string {
-  if (score >= 80) return "Your attention is in the pre-digital healthy range";
-  if (score >= 60) return "Your attention shows moderate digital-age effects";
-  if (score >= 40) return "Your attention profile leans toward heavy social media patterns";
-  return "Your attention profile matches a typical heavy social media user";
+  if (score >= 80) return "Untouched. Your attention span predates the algorithm.";
+  if (score >= 60) return "Slightly cooked. Signs of digital drift, but you're not a lost cause.";
+  if (score >= 40) return "Cooked. The feed has done its work on you.";
+  return "Fully cooked. Congratulations, you are peak 2024.";
 }
 
 function getSummary(score: number): string {
   if (score >= 80) {
-    return "You're rocking pre-smartphone focus levels. Either you barely use social media, or your brain is unusually resilient. Respect.";
+    return "Pre-smartphone focus levels, confirmed by science. Either you barely touch social media, or your prefrontal cortex is just built different. Respect. Genuinely.";
   }
   if (score >= 60) {
-    return "Your attention is holding up okay, but there are some signs of digital drift. A little less scrolling could go a long way.";
+    return "Your attention is holding — but the drift is real. You're showing classic signs of digital-age distraction: slower inhibitory control, slightly elevated lapse rates. You're not a lost cause. Put the phone down more.";
   }
   if (score >= 40) {
-    return "Your results suggest social media is taking a toll on your focus. The good news: brains are plastic — attention can be trained back.";
+    return "The algorithm has done its homework on you. Your sustained attention and impulse control are measurably impacted — consistent with heavy short-form video exposure. Good news: brains are plastic. Bad news: so is your willpower.";
   }
-  return "The endless scroll has done its thing. Your attention profile is the most common pattern in 2024. You're in good (bad?) company.";
+  return "Peak 2024. Your attention profile is the most common pattern in modern populations — fast-twitch, impulsive, lapse-prone. You're in good (bad?) company. The endless scroll has done its thing, and the data confirms it.";
 }
 
 function getBadgeVariant(score: number): "default" | "secondary" | "destructive" | "outline" {
@@ -169,9 +153,9 @@ function getSelfReportContext(selfReport: SelfReportData, score: number): string
 }
 
 function getBadgeLabel(score: number): string {
-  if (score >= 80) return "Pre-digital range";
-  if (score >= 60) return "Moderate deviation";
-  return "Significant deviation";
+  if (score >= 80) return "Untouched";
+  if (score >= 60) return "Slightly cooked";
+  return "Fully cooked";
 }
 
 function getDeviationLabel(score: number): string {
@@ -446,25 +430,11 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
   const [showDetails, setShowDetails] = useState(false);
-  const [copied, setCopied] = useState(false);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
   const selfReport: SelfReportData | null = (() => {
     const raw = sessionStorage.getItem("selfReport");
     return raw ? (JSON.parse(raw) as SelfReportData) : null;
   })();
-
-  const handleShare = useCallback(() => {
-    const url = buildShareUrl();
-    window.history.replaceState(null, "", url);
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }).catch(() => {
-      // fallback: show the URL was set in hash
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
-  }, []);
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4">
@@ -472,10 +442,15 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
         {isShared && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="pt-4 pb-4">
-              <p className="text-sm font-medium text-center text-primary mb-2">
+              <p className="text-sm font-medium text-center text-primary mb-1">
                 You're viewing someone else's results
               </p>
-              <Button className="w-full" size="sm" onClick={onRestart}>
+              {testsCompleted < 6 && (
+                <p className="text-xs text-center text-muted-foreground mb-2">
+                  Heads up: these are partial results — only {testsCompleted} of 6 tests were completed. For the full picture, they should finish the test.
+                </p>
+              )}
+              <Button className={testsCompleted < 6 ? "w-full" : "w-full mt-2"} size="sm" onClick={onRestart}>
                 Take the test yourself →
               </Button>
             </CardContent>
@@ -484,7 +459,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
 
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Your Results</h1>
-          <p className="text-muted-foreground">Your Digital Attention Profile</p>
+          <p className="text-muted-foreground">Your Brainrot Report</p>
         </div>
 
         <Card>
@@ -535,26 +510,13 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
 
           <CardFooter className="flex-col gap-3">
             {composite !== null && (
-              <>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowDetails((v) => !v)}
-                >
-                  {showDetails ? "Hide detailed results" : "See detailed results"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleShare}
-                >
-                  {copied ? (
-                    <><Check className="h-4 w-4 mr-2 text-green-600" />Link copied!</>
-                  ) : (
-                    <><Share2 className="h-4 w-4 mr-2" />Share Results</>
-                  )}
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowDetails((v) => !v)}
+              >
+                {showDetails ? "Hide detailed results" : "See detailed results"}
+              </Button>
             )}
             <Button className="w-full" size="lg" onClick={onRestart}>
               Take Test Again
