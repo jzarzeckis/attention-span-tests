@@ -11,6 +11,7 @@ import type { StroopStats } from "./tests/StroopTest";
 import type { PVTStats } from "./tests/PVTTest";
 import type { DelayDiscountingStats } from "./tests/DelayDiscountingTest";
 import type { GoNoGoStats } from "./tests/GoNoGoTest";
+import type { SelfReportData } from "./QuestionnaireScreen";
 
 interface ResultsScreenProps {
   onRestart: () => void;
@@ -23,6 +24,8 @@ function encodeResults(): string {
     const raw = sessionStorage.getItem(id);
     if (raw) data[id] = JSON.parse(raw);
   }
+  const selfReportRaw = sessionStorage.getItem("selfReport");
+  if (selfReportRaw) data["selfReport"] = JSON.parse(selfReportRaw);
   return btoa(JSON.stringify(data));
 }
 
@@ -142,6 +145,27 @@ function getBadgeVariant(score: number): "default" | "secondary" | "destructive"
   if (score >= 80) return "default";
   if (score >= 60) return "secondary";
   return "destructive";
+}
+
+function getSelfReportContext(selfReport: SelfReportData, score: number): string {
+  const usageHigh = selfReport.shortFormUsage === "3+ hrs" || selfReport.shortFormUsage === "1–3 hrs";
+  const usageLow = selfReport.shortFormUsage === "Less than 30 min";
+  const attentionLow = selfReport.selfRatedAttention <= 2;
+  const attentionHigh = selfReport.selfRatedAttention >= 4;
+
+  if (usageHigh && score < 60) {
+    return `You report ${selfReport.shortFormUsage} daily on TikTok/Reels/Shorts — that's consistent with these results. Heavy short-form use is the strongest predictor of reduced sustained attention.`;
+  }
+  if (usageLow && score >= 70) {
+    return `You report ${selfReport.shortFormUsage} daily on short-form video. Your low usage likely contributes to your above-average scores.`;
+  }
+  if (attentionLow && score >= 70) {
+    return `You rated your own attention as ${selfReport.selfRatedAttention}/5, but your test scores tell a different story — you're actually performing in the healthy range. Self-perception of attention is often worse than reality.`;
+  }
+  if (attentionHigh && score < 50) {
+    return `You rated your own attention as ${selfReport.selfRatedAttention}/5, but the tests show more significant digital-age effects. It's easy to underestimate how much the scroll has changed our focus.`;
+  }
+  return `You report ${selfReport.shortFormUsage} daily on short-form video and rate your attention ${selfReport.selfRatedAttention}/5. Your test scores ${score >= 70 ? "align with" : "suggest more impact than"} your self-assessment.`;
 }
 
 function getBadgeLabel(score: number): string {
@@ -424,6 +448,10 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
+  const selfReport: SelfReportData | null = (() => {
+    const raw = sessionStorage.getItem("selfReport");
+    return raw ? (JSON.parse(raw) as SelfReportData) : null;
+  })();
 
   const handleShare = useCallback(() => {
     const url = buildShareUrl();
@@ -533,6 +561,25 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
             </Button>
           </CardFooter>
         </Card>
+
+        {selfReport && composite !== null && (
+          <Card className="border-muted bg-muted/30">
+            <CardContent className="pt-4 pb-4 space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Your self-report context
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {getSelfReportContext(selfReport, composite)}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                <span className="text-xs text-muted-foreground">Age: <span className="text-foreground">{selfReport.age}</span></span>
+                <span className="text-xs text-muted-foreground">Short-form: <span className="text-foreground">{selfReport.shortFormUsage}</span></span>
+                <span className="text-xs text-muted-foreground">Screen time: <span className="text-foreground">{selfReport.screenTime}</span></span>
+                <span className="text-xs text-muted-foreground">Self-rated attention: <span className="text-foreground">{selfReport.selfRatedAttention}/5</span></span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {showDetails && details.length > 0 && (
           <div className="space-y-3">

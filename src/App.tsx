@@ -2,6 +2,7 @@ import "./index.css";
 import { useState } from "react";
 import { type Screen, TEST_LIST } from "@/types";
 import { LandingScreen } from "@/screens/LandingScreen";
+import { QuestionnaireScreen } from "@/screens/QuestionnaireScreen";
 import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen } from "@/screens/ResultsScreen";
 
@@ -28,6 +29,9 @@ function decodeSharedResults(encoded: string): boolean {
         loaded = true;
       }
     }
+    if ("selfReport" in data) {
+      sessionStorage.setItem("selfReport", JSON.stringify(data["selfReport"]));
+    }
     return loaded;
   } catch {
     return false;
@@ -48,7 +52,9 @@ function initScreen(): Screen {
 export function App() {
   const [screen, setScreen] = useState<Screen>(initScreen);
 
-  const handleStart = () => setScreen({ type: "test", testIndex: 0 });
+  const handleStart = () => setScreen({ type: "questionnaire" });
+
+  const handleQuestionnaireComplete = () => setScreen({ type: "test", testIndex: 0 });
 
   const handleContinue = () => {
     const resumeIndex = getResumeIndex();
@@ -71,6 +77,7 @@ export function App() {
 
   const handleRestart = () => {
     TEST_LIST.forEach((test) => sessionStorage.removeItem(test.id));
+    sessionStorage.removeItem("selfReport");
     setScreen({ type: "landing" });
   };
 
@@ -83,6 +90,10 @@ export function App() {
         onStartOver={handleRestart}
       />
     );
+  }
+
+  if (screen.type === "questionnaire") {
+    return <QuestionnaireScreen onComplete={handleQuestionnaireComplete} />;
   }
 
   if (screen.type === "test") {
