@@ -183,7 +183,7 @@ export async function generateScoreImage(
   );
   ctx.fill();
 
-  ctx.fillStyle = "#e4e4e7";
+  ctx.fillStyle = "#ffffff";
   ctx.font = `700 ${ctaFontSize}px ${font}`;
   ctx.textAlign = "left";
   ctx.fillText(ctaPrefix, ctaStartX, ctaY);
