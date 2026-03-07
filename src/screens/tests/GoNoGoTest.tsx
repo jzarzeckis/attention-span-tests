@@ -11,7 +11,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { ReadySetGo } from "@/components/ReadySetGo";
 
-const TOTAL_TRIALS = 100;
+const IS_DEV = process.env.NODE_ENV !== "production";
+const TOTAL_TRIALS = IS_DEV ? 5 : 100; // dev: 5 trials (1 no-go), prod: 100
 const NOGO_RATIO = 0.2; // 20% No-Go trials
 const STIMULUS_DURATION_MS = 500;
 const ISI_MS = 1000;

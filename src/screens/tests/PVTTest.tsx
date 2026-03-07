@@ -11,9 +11,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { ReadySetGo } from "@/components/ReadySetGo";
 
-const TOTAL_TRIALS = 30;
-const MIN_ISI_MS = 2000;
-const MAX_ISI_MS = 10000;
+const IS_DEV = process.env.NODE_ENV !== "production";
+const TOTAL_TRIALS = IS_DEV ? 1 : 30;
+const MIN_ISI_MS = IS_DEV ? 500 : 2000;
+const MAX_ISI_MS = IS_DEV ? 1000 : 10000;
 const LAPSE_THRESHOLD_MS = 500;
 
 type Phase = "instructions" | "countdown" | "running" | "complete";

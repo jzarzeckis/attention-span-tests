@@ -15,8 +15,9 @@ import { ReadySetGo } from "@/components/ReadySetGo";
 const STIMULUS_MS = 250;
 const TRIAL_MS = 1150;
 const TARGET_DIGIT = 3;
+const IS_DEV = process.env.NODE_ENV !== "production";
 const PRACTICE_CYCLES = 1; // 9 trials
-const MAIN_CYCLES = 25;    // 225 trials
+const MAIN_CYCLES = IS_DEV ? 1 : 25; // dev: 9 trials, prod: 225 trials
 
 type Phase = "instructions" | "countdown" | "practice" | "practice-done" | "complete" | "main";
 
