@@ -113,7 +113,7 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
     }
 
     const rank = getRank(composite);
-    const blob = await generateScoreImage(composite, rank.badge, rank.summary);
+    const blob = await generateScoreImage(composite, rank.badge, rank.summary, scores);
 
     if (!blob) {
       toast.error("Could not generate image.");
