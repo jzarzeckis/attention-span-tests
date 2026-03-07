@@ -13,7 +13,7 @@ export function encodeResults(): string {
 
 export function buildShareUrl(): string {
   const encoded = encodeResults();
-  return `${window.location.origin}/share?r=${encoded}`;
+  return `${window.location.origin}/?r=${encoded}`;
 }
 
 export function countCompletedTests(): number {

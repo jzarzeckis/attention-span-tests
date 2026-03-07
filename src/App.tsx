@@ -76,7 +76,7 @@ function initScreen(): Screen {
   return { type: "landing" };
 }
 
-function ShareFAB() {
+function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [labelText, setLabelText] = useState("");
   const [labelVisible, setLabelVisible] = useState(false);
@@ -134,17 +134,30 @@ function ShareFAB() {
       >
         {labelText}
       </span>
-      <Button
-        className="rounded-full shadow-lg h-12 px-5 gap-2 font-semibold"
-        onClick={handleShare}
-        aria-label="Share results"
-        style={{ touchAction: "manipulation" }}
-      >
-        {copied ? <Check className="h-5 w-5 shrink-0" /> : <Share2 className="h-5 w-5 shrink-0" />}
-        <span className="pointer-events-none">
-          {copied ? "Link copied!" : "Flex my score"}
-        </span>
-      </Button>
+      {subtle ? (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="rounded-full h-9 w-9 text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-background/60"
+          onClick={handleShare}
+          aria-label="Share results"
+          style={{ touchAction: "manipulation" }}
+        >
+          <Share2 className="h-4 w-4" />
+        </Button>
+      ) : (
+        <Button
+          className="rounded-full shadow-lg h-12 px-5 gap-2 font-semibold"
+          onClick={handleShare}
+          aria-label="Share results"
+          style={{ touchAction: "manipulation" }}
+        >
+          {copied ? <Check className="h-5 w-5 shrink-0" /> : <Share2 className="h-5 w-5 shrink-0" />}
+          <span className="pointer-events-none">
+            {copied ? "Link copied!" : "Flex my score"}
+          </span>
+        </Button>
+      )}
     </div>
   );
 }
@@ -208,7 +221,7 @@ export function App() {
     return (
       <>
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
-        <ShareFAB />
+        <ShareFAB subtle />
       </>
     );
   }

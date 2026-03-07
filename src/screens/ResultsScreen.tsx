@@ -117,24 +117,59 @@ function getBadgeVariant(score: number): "default" | "secondary" | "destructive"
 }
 
 function getSelfReportContext(selfReport: SelfReportData, score: number): string {
-  const usageHigh = selfReport.shortFormUsage === "3+ hrs" || selfReport.shortFormUsage === "1–3 hrs";
-  const usageLow = selfReport.shortFormUsage === "Less than 30 min";
-  const attentionLow = selfReport.selfRatedAttention <= 2;
-  const attentionHigh = selfReport.selfRatedAttention >= 4;
+  const { shortFormUsage, selfRatedAttention, age } = selfReport;
+  const usageVeryHigh = shortFormUsage === "3+ hrs";
+  const usageHigh = shortFormUsage === "1–3 hrs";
+  const usageLow = shortFormUsage === "Less than 30 min";
+  const usageMid = shortFormUsage === "30 min – 1 hr";
+  const attentionLow = selfRatedAttention <= 2;
+  const attentionHigh = selfRatedAttention >= 4;
+  const isYoung = age === "Under 18" || age === "18–24";
 
+  // Resilient heavy user — statistically unusual
+  if ((usageVeryHigh || usageHigh) && score >= 70) {
+    return `${shortFormUsage}/day on short-form and still scoring ${score}/100 — that's unusual. Either your brain genuinely resists the scroll effect, you have strong compensating habits (sleep, exercise, deep work), or the self-reported usage is a little low. Either way, don't get complacent.`;
+  }
+
+  // Very heavy use + tanked score — clear cause/effect
+  if (usageVeryHigh && score < 50) {
+    return `${shortFormUsage} of TikTok/Reels/Shorts daily, score of ${score}/100. The data is consistent. The algorithm was literally engineered to hijack your attention pathways — and it worked. Not a moral judgment. Just what the reaction times say.`;
+  }
+
+  // Heavy use + below-average score
   if (usageHigh && score < 60) {
-    return `You report ${selfReport.shortFormUsage} daily on TikTok/Reels/Shorts — that's consistent with these results. Heavy short-form use is the strongest predictor of reduced sustained attention.`;
+    return `${shortFormUsage} on short-form video daily — right in the range where the research shows measurable impact on sustained attention and inhibitory control. Your score of ${score}/100 lines up with that. Not a coincidence.`;
   }
+
+  // Low usage + good score — clean correlation
   if (usageLow && score >= 70) {
-    return `You report ${selfReport.shortFormUsage} daily on short-form video. Your low usage likely contributes to your above-average scores.`;
+    return `Under 30 min of short-form daily. Score: ${score}/100. Clean correlation. Your attention isn't being hammered by the 3-second dopamine loop all day — and the tests confirm that.`;
   }
-  if (attentionLow && score >= 70) {
-    return `You rated your own attention as ${selfReport.selfRatedAttention}/5, but your test scores tell a different story — you're actually performing in the healthy range. Self-perception of attention is often worse than reality.`;
+
+  // Thinks they're bad at attention but the data says otherwise
+  if (attentionLow && score >= 65) {
+    return `You rated your attention ${selfRatedAttention}/5 — but scored ${score}/100. Classic metacognitive gap. People who overthink their focus or hold themselves to high standards tend to underrate themselves. Your brain is doing better than your inner critic is reporting.`;
   }
+
+  // Confident they're fine, but objectively not
   if (attentionHigh && score < 50) {
-    return `You rated your own attention as ${selfReport.selfRatedAttention}/5, but the tests show more significant digital-age effects. It's easy to underestimate how much the scroll has changed our focus.`;
+    return `You rated your attention ${selfRatedAttention}/5, but the objective score is ${score}/100. This is actually the most documented pattern: heavy algorithmic exposure tends to reduce awareness of its own effects. The scroll doesn't feel like it's working on you — that's precisely how it works.`;
   }
-  return `You report ${selfReport.shortFormUsage} daily on short-form video and rate your attention ${selfReport.selfRatedAttention}/5. Your test scores ${score >= 70 ? "align with" : "suggest more impact than"} your self-assessment.`;
+
+  // Young + low score — developmental context
+  if (isYoung && score < 50) {
+    return `Prefrontal cortex development continues until ~25, meaning your inhibitory control is still literally under construction. Combined with ${shortFormUsage}/day of short-form content, a score of ${score}/100 makes neurological sense. The good news: it's also the most plastic phase for rewiring habits.`;
+  }
+
+  // Mid usage + moderate score — in-between zone
+  if (usageMid && score >= 50 && score < 70) {
+    return `${shortFormUsage}/day of short-form — moderate input, moderate impact. Score of ${score}/100 puts you in the "drift is real but not catastrophic" zone. The dose is low enough that recovery is straightforward if you want it.`;
+  }
+
+  // Fallback — still personalized
+  const alignment = score >= 70 ? "aligns with" : score < 50 ? "diverges significantly from" : "only loosely matches";
+  const closer = score >= 70 ? "Your gut check was roughly right." : score < 50 ? "Objective tests catch what introspection misses." : "Worth watching the trend.";
+  return `${shortFormUsage}/day on short-form, self-rated attention ${selfRatedAttention}/5. Your test score of ${score}/100 ${alignment} your self-assessment. ${closer}`;
 }
 
 function getBadgeLabel(score: number): string {
