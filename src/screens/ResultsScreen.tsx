@@ -307,15 +307,23 @@ function ScoreGauge({ score }: { score: number }) {
   const [displayed, setDisplayed] = useState(0);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
+  const displayedRef = useRef(0); // mirrors displayed, readable in effects
   const DURATION = 1200;
 
   useEffect(() => {
+    // Animate from wherever we currently are so effect re-runs (e.g. React
+    // Strict Mode double-invoke) never snap the value backward to 0.
+    const startValue = displayedRef.current;
+    startRef.current = null;
+
     const animate = (ts: number) => {
       if (startRef.current === null) startRef.current = ts;
       const elapsed = ts - startRef.current;
       const progress = Math.min(elapsed / DURATION, 1);
       const eased = 1 - (1 - progress) * (1 - progress);
-      setDisplayed(Math.round(eased * score));
+      const next = Math.round(startValue + eased * (score - startValue));
+      displayedRef.current = next;
+      setDisplayed(next);
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(animate);
       }
@@ -323,6 +331,7 @@ function ScoreGauge({ score }: { score: number }) {
     rafRef.current = requestAnimationFrame(animate);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      startRef.current = null;
     };
   }, [score]);
 
