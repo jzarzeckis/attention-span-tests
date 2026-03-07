@@ -139,7 +139,7 @@ export function App() {
   // Dev escape hatch: window.__devGoToTest(index) jumps to a test without reload
   useEffect(() => {
     if (IS_DEV) {
-      (window as Record<string, unknown>).__devGoToTest = (index: number) => {
+      (window as unknown as Record<string, unknown>).__devGoToTest = (index: number) => {
         setScreen({ type: "test", testIndex: index });
       };
     }
