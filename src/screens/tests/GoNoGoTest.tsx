@@ -222,6 +222,17 @@ export function GoNoGoTest({ onComplete }: Props) {
     };
   }, [handleTap]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleTap();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleTap]);
+
   if (phase === "instructions") {
     return (
       <Card>
@@ -234,10 +245,10 @@ export function GoNoGoTest({ onComplete }: Props) {
             Circles will appear one at a time on the screen.
           </p>
           <p>
-            <strong className="text-green-600">Green circle</strong> → <strong>Tap it!</strong> (Go)
+            <strong className="text-green-600">Green circle</strong> → <strong>Tap or press <kbd className="font-mono bg-muted px-1 rounded text-xs">Space</kbd>!</strong> (Go)
           </p>
           <p>
-            <strong className="text-red-600">Red circle</strong> → <strong>Do NOT tap.</strong> (No-Go)
+            <strong className="text-red-600">Red circle</strong> → <strong>Do NOT respond.</strong> (No-Go)
           </p>
           <p>
             The green circle appears most of the time. React quickly, but hold back on red!

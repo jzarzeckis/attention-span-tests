@@ -147,6 +147,17 @@ export function PVTTest({ onComplete }: Props) {
     }
   }, [phase, onComplete]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleTap();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleTap]);
+
   useEffect(() => () => clearAllTimers(), [clearAllTimers]);
 
   if (phase === "instructions") {
@@ -159,10 +170,10 @@ export function PVTTest({ onComplete }: Props) {
         <CardContent className="space-y-3 text-sm">
           <p>A red circle will appear on screen at unpredictable times — anywhere from 2 to 10 seconds apart.</p>
           <p>
-            <strong>Tap the circle as quickly as possible</strong> when it appears.
+            <strong>Tap or press <kbd className="font-mono bg-muted px-1 rounded text-xs">Space</kbd> as quickly as possible</strong> when it appears.
           </p>
           <p>
-            Do <strong>not</strong> tap before the circle appears — that counts as a false start.
+            Do <strong>not</strong> respond before the circle appears — that counts as a false start.
           </p>
           <p className="text-muted-foreground">
             This test measures how alert and vigilant your attention is over time.

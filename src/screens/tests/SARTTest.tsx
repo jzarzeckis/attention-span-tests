@@ -193,6 +193,17 @@ export function SARTTest({ onComplete }: Props) {
     }
   }, [phase, onComplete]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleTap();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleTap]);
+
   useEffect(() => () => clearTimers(), [clearTimers]);
 
   if (phase === "instructions") {
@@ -206,13 +217,13 @@ export function SARTTest({ onComplete }: Props) {
           <p>Digits 1–9 will flash on screen one at a time.</p>
           <p>
             <strong>
-              Tap for every digit EXCEPT{" "}
+              Tap or press <kbd className="font-mono bg-muted px-1 rounded text-xs">Space</kbd> for every digit EXCEPT{" "}
               <span className="text-3xl font-bold">{TARGET_DIGIT}</span>.
             </strong>
           </p>
           <p>
             When you see a <strong>{TARGET_DIGIT}</strong>, do{" "}
-            <strong>NOT</strong> tap — hold back.
+            <strong>NOT</strong> respond — hold back.
           </p>
           <p>Respond as quickly as possible. Each digit appears briefly.</p>
           <p className="text-muted-foreground">
@@ -268,7 +279,7 @@ export function SARTTest({ onComplete }: Props) {
             </span>
           ) : (
             <span className="text-muted-foreground text-sm">
-              Tap here for every digit except 3
+              Tap / Space for every digit except 3
             </span>
           )}
         </button>
@@ -302,7 +313,7 @@ export function SARTTest({ onComplete }: Props) {
             shown during the test.
           </p>
           <p>
-            Remember: tap for <strong>all digits except {TARGET_DIGIT}</strong>.
+            Remember: tap or press Space for <strong>all digits except {TARGET_DIGIT}</strong>.
           </p>
         </CardContent>
         <CardFooter>
