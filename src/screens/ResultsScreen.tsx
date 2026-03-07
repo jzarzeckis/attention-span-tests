@@ -487,7 +487,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const selfReport = resultsStore.getItem("selfReport");
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center p-4 pb-24">
+    <div className="flex min-h-svh flex-col items-center justify-center pt-16 px-4 pb-24">
       <div className="w-full max-w-md space-y-6">
         {isShared && (
           <Card className="border-primary/30 bg-primary/5">
@@ -513,19 +513,21 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Attention Score</CardTitle>
-              {composite !== null ? (
-                <Badge variant={getRank(composite).variant}>
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">Attention Score</CardTitle>
+            {composite !== null ? (
+              <div className="flex justify-center mt-2">
+                <Badge variant={getRank(composite).variant} className="text-base px-4 py-1">
                   {getRank(composite).badge}
                 </Badge>
-              ) : (
-                <Badge variant="outline">No results yet</Badge>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex justify-center mt-2">
+                <Badge variant="outline" className="text-base px-4 py-1">No results yet</Badge>
+              </div>
+            )}
             {composite !== null && (
-              <CardDescription className="font-medium text-foreground">
+              <CardDescription className="font-medium text-foreground mt-2">
                 {getRank(composite).label}
               </CardDescription>
             )}
