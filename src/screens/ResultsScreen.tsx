@@ -90,30 +90,39 @@ function compositeScore(scores: TestScores): number | null {
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 }
 
-function getLabel(score: number): string {
-  if (score >= 80) return "Untouched. Your attention span predates the algorithm.";
-  if (score >= 60) return "Slightly cooked. Signs of digital drift, but you're not a lost cause.";
-  if (score >= 40) return "Cooked. The feed has done its work on you.";
-  return "Fully cooked. Congratulations, you are peak 2024.";
-}
+const RANKS = [
+  {
+    threshold: 80,
+    badge: "Functional Human",
+    label: "Functional Human. Your attention span predates the algorithm.",
+    summary: "Pre-smartphone focus levels, confirmed by science. Either you barely touch social media, or your prefrontal cortex is just built different. Respect. Genuinely.",
+    variant: "default" as const,
+  },
+  {
+    threshold: 60,
+    badge: "Mildly Internet-Poisoned",
+    label: "Mildly Internet-Poisoned. Signs of digital drift, but you're not a lost cause.",
+    summary: "Your attention is holding — but the drift is real. You're showing classic signs of digital-age distraction: slower inhibitory control, slightly elevated lapse rates. You're not a lost cause. Put the phone down more.",
+    variant: "secondary" as const,
+  },
+  {
+    threshold: 40,
+    badge: "Chronic Scroller",
+    label: "Chronic Scroller. The algorithm has done its homework on you.",
+    summary: "Your sustained attention and impulse control are measurably impacted — consistent with heavy short-form video exposure. Good news: brains are plastic. Bad news: so is your willpower.",
+    variant: "destructive" as const,
+  },
+  {
+    threshold: 0,
+    badge: "NPC of the Algorithm",
+    label: "NPC of the Algorithm. Congratulations, you are peak 2024.",
+    summary: "Your attention profile is the most common pattern in modern populations — fast-twitch, impulsive, lapse-prone. You're in good (bad?) company. The endless scroll has done its thing, and the data confirms it.",
+    variant: "destructive" as const,
+  },
+] satisfies { threshold: number; badge: string; label: string; summary: string; variant: "default" | "secondary" | "destructive" | "outline" }[];
 
-function getSummary(score: number): string {
-  if (score >= 80) {
-    return "Pre-smartphone focus levels, confirmed by science. Either you barely touch social media, or your prefrontal cortex is just built different. Respect. Genuinely.";
-  }
-  if (score >= 60) {
-    return "Your attention is holding — but the drift is real. You're showing classic signs of digital-age distraction: slower inhibitory control, slightly elevated lapse rates. You're not a lost cause. Put the phone down more.";
-  }
-  if (score >= 40) {
-    return "The algorithm has done its homework on you. Your sustained attention and impulse control are measurably impacted — consistent with heavy short-form video exposure. Good news: brains are plastic. Bad news: so is your willpower.";
-  }
-  return "Peak 2024. Your attention profile is the most common pattern in modern populations — fast-twitch, impulsive, lapse-prone. You're in good (bad?) company. The endless scroll has done its thing, and the data confirms it.";
-}
-
-function getBadgeVariant(score: number): "default" | "secondary" | "destructive" | "outline" {
-  if (score >= 80) return "default";
-  if (score >= 60) return "secondary";
-  return "destructive";
+function getRank(score: number) {
+  return RANKS.find((r) => score >= r.threshold) ?? RANKS[RANKS.length - 1]!;
 }
 
 function getSelfReportContext(selfReport: SelfReportData, score: number): string {
@@ -170,12 +179,6 @@ function getSelfReportContext(selfReport: SelfReportData, score: number): string
   const alignment = score >= 70 ? "aligns with" : score < 50 ? "diverges significantly from" : "only loosely matches";
   const closer = score >= 70 ? "Your gut check was roughly right." : score < 50 ? "Objective tests catch what introspection misses." : "Worth watching the trend.";
   return `${shortFormUsage}/day on short-form, self-rated attention ${selfRatedAttention}/5. Your test score of ${score}/100 ${alignment} your self-assessment. ${closer}`;
-}
-
-function getBadgeLabel(score: number): string {
-  if (score >= 80) return "Untouched";
-  if (score >= 60) return "Slightly cooked";
-  return "Fully cooked";
 }
 
 function getDeviationLabel(score: number): string {
@@ -417,7 +420,7 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{detail.name}</CardTitle>
           {detail.score !== null && (
-            <Badge variant={getBadgeVariant(detail.score)}>
+            <Badge variant={getRank(detail.score).variant}>
               {Math.round(detail.score)} / 100
             </Badge>
           )}
@@ -432,7 +435,7 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
         {detail.score !== null && (
           <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</span>
-            <Badge variant={getBadgeVariant(detail.score)} className="text-xs">
+            <Badge variant={getRank(detail.score).variant} className="text-xs">
               {getDeviationLabel(detail.score)}
             </Badge>
           </div>
@@ -526,8 +529,8 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
             <div className="flex items-center justify-between">
               <CardTitle>Attention Score</CardTitle>
               {composite !== null ? (
-                <Badge variant={getBadgeVariant(composite)}>
-                  {getBadgeLabel(composite)}
+                <Badge variant={getRank(composite).variant}>
+                  {getRank(composite).badge}
                 </Badge>
               ) : (
                 <Badge variant="outline">No results yet</Badge>
@@ -535,7 +538,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
             </div>
             {composite !== null && (
               <CardDescription className="font-medium text-foreground">
-                {getLabel(composite)}
+                {getRank(composite).label}
               </CardDescription>
             )}
           </CardHeader>
@@ -545,7 +548,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
               <>
                 <ScoreGauge score={composite} />
                 <p className="text-sm text-muted-foreground">
-                  {getSummary(composite)}
+                  {getRank(composite).summary}
                 </p>
                 <p className="text-xs text-muted-foreground text-right">
                   Based on {testsCompleted} of 4 tests
