@@ -66,20 +66,21 @@ export async function generateScoreImage(
   ctx.fillRect(0, 0, size, size);
 
   // App title with pill highlight
-  const titleText = "BRAINROT METER";
-  ctx.font = `700 38px ${font}`;
+  const titleText = "BRAINROToMETER";
+  ctx.font = `700 52px ${font}`;
   ctx.textAlign = "center";
   const titleWidth = ctx.measureText(titleText).width;
   const titlePillPadX = 28;
   const titlePillPadY = 16;
-  const titlePillH = 38 + titlePillPadY * 2;
-  const titlePillY = 68;
+  const titlePillH = 52 + titlePillPadY * 2;
+  const titlePillY = 60;
   // Pill background
   ctx.fillStyle = "#3f3f46";
   roundedRect(ctx, size / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
   ctx.fill();
   // Title text
   ctx.fillStyle = "#fafafa";
+  ctx.font = `700 52px ${font}`;
   ctx.fillText(titleText, size / 2, titlePillY + titlePillH - titlePillPadY - 4);
 
   // Top separator
@@ -166,7 +167,7 @@ export async function generateScoreImage(
   );
   ctx.fill();
 
-  ctx.fillStyle = "#71717a";
+  ctx.fillStyle = "#ffffff";
   ctx.font = `400 ${ctaFontSize}px ${font}`;
   ctx.textAlign = "left";
   ctx.fillText(ctaPrefix, ctaStartX, ctaY);
