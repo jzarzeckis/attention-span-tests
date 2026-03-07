@@ -9,7 +9,7 @@ import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen } from "@/screens/ResultsScreen";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { buildShareUrl, hasAnyTestResults, countCompletedTests } from "@/utils/shareUtils";
+import { buildShareUrl, hasAnyTestResults, countCompletedTests, generateScoreImage } from "@/utils/shareUtils";
 import { resultsStore } from "@/utils/resultsStore";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -64,13 +64,33 @@ function initScreen(): Screen {
 function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   const showFAB = hasAnyTestResults();
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     const count = countCompletedTests();
     const url = buildShareUrl();
+    const imageBlob = await generateScoreImage();
 
-    // Use native share sheet on mobile (iOS/Android) — most reliable
-    if (navigator.share) {
+    // Try native share with image file (Web Share API Level 2)
+    if (imageBlob && navigator.share) {
+      const file = new File([imageBlob], "brainrot-score.png", { type: "image/png" });
+      const shareData: ShareData = { title: "Brainrot Meter", text: "I just tested my attention span.", files: [file] };
+      if (navigator.canShare?.(shareData)) {
+        navigator.share(shareData).catch(() => {});
+        return;
+      }
+      // Fall back to URL-only share if file sharing unsupported
       navigator.share({ title: "Brainrot Meter Results", url }).catch(() => {});
+      return;
+    }
+
+    // Download the image on desktop as a fallback
+    if (imageBlob) {
+      const objectUrl = URL.createObjectURL(imageBlob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "brainrot-score.png";
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      toast.success(count < 4 ? `Downloaded! (${count} of 4 tests completed)` : "Image downloaded!");
       return;
     }
 
