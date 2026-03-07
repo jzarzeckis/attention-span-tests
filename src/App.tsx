@@ -1,12 +1,14 @@
 import "./index.css";
 import { useState, useCallback, useEffect } from "react";
-import { Share2, Check } from "lucide-react";
+import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { type Screen, TEST_LIST } from "@/types";
 import { LandingScreen } from "@/screens/LandingScreen";
 import { QuestionnaireScreen } from "@/screens/QuestionnaireScreen";
 import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen } from "@/screens/ResultsScreen";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { buildShareUrl, hasAnyTestResults, countCompletedTests } from "@/utils/shareUtils";
 import { resultsStore } from "@/utils/resultsStore";
 
@@ -60,9 +62,6 @@ function initScreen(): Screen {
 }
 
 function ShareFAB({ subtle = false }: { subtle?: boolean }) {
-  const [copied, setCopied] = useState(false);
-  const [labelText, setLabelText] = useState("");
-  const [labelVisible, setLabelVisible] = useState(false);
   const showFAB = hasAnyTestResults();
 
   const handleShare = useCallback(() => {
@@ -76,15 +75,11 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
     }
 
     const afterCopy = () => {
-      const text =
+      const message =
         count < 4
           ? `Sharing ${count} of 4 tests — finish the rest for your full score!`
           : "Link copied!";
-      setLabelText(text);
-      setCopied(true);
-      setLabelVisible(true);
-      setTimeout(() => setLabelVisible(false), 2200);
-      setTimeout(() => setCopied(false), 2500);
+      toast.success(message);
     };
 
     // Clipboard API (requires secure context)
@@ -111,12 +106,7 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   if (!showFAB) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2" style={{ bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))" }}>
-      <span
-        className={`text-xs bg-background border rounded px-2 py-1 shadow text-muted-foreground whitespace-nowrap transition-opacity duration-300 pointer-events-none ${labelVisible ? "opacity-100" : "opacity-0"}`}
-      >
-        {labelText}
-      </span>
+    <div className="fixed bottom-6 right-6 z-50" style={{ bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))" }}>
       {subtle ? (
         <Button
           size="icon"
@@ -135,10 +125,8 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
           aria-label="Share results"
           style={{ touchAction: "manipulation" }}
         >
-          {copied ? <Check className="h-5 w-5 shrink-0" /> : <Share2 className="h-5 w-5 shrink-0" />}
-          <span className="pointer-events-none">
-            {copied ? "Link copied!" : "Flex my score"}
-          </span>
+          <Share2 className="h-5 w-5 shrink-0" />
+          <span className="pointer-events-none">Flex my score</span>
         </Button>
       )}
     </div>
@@ -185,42 +173,27 @@ export function App() {
     setScreen({ type: "landing" });
   };
 
-  if (screen.type === "landing") {
-    return (
-      <>
+  return (
+    <>
+      {screen.type === "landing" && (
         <LandingScreen
           onStart={handleStart}
           hasProgress={hasAnyProgress()}
           onContinue={handleContinue}
           onStartOver={handleRestart}
         />
-        <ShareFAB />
-      </>
-    );
-  }
-
-  if (screen.type === "questionnaire") {
-    return (
-      <>
+      )}
+      {screen.type === "questionnaire" && (
         <QuestionnaireScreen onComplete={handleQuestionnaireComplete} onSkip={handleQuestionnaireComplete} />
-        <ShareFAB />
-      </>
-    );
-  }
-
-  if (screen.type === "test") {
-    return (
-      <>
+      )}
+      {screen.type === "test" && (
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
-        <ShareFAB subtle />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <ResultsScreen onRestart={handleRestart} isShared={screen.type === "results" && !!screen.isShared} />
-      <ShareFAB />
+      )}
+      {screen.type === "results" && (
+        <ResultsScreen onRestart={handleRestart} isShared={!!screen.isShared} />
+      )}
+      <ShareFAB subtle={screen.type === "test"} />
+      <Toaster position="bottom-center" />
     </>
   );
 }
