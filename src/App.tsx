@@ -1,6 +1,6 @@
 import "./index.css";
 import { useState, useCallback, useEffect } from "react";
-import { Share2 } from "lucide-react";
+import { Share2, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { type Screen, TEST_LIST } from "@/types";
 import { LandingScreen } from "@/screens/LandingScreen";
@@ -9,8 +9,11 @@ import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen } from "@/screens/ResultsScreen";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildShareUrl, hasAnyTestResults, countCompletedTests } from "@/utils/shareUtils";
 import { resultsStore } from "@/utils/resultsStore";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { THEMES, type ThemeId } from "@/themes";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -29,6 +32,15 @@ function getResumeIndex(): number | null {
 
 function hasAnyProgress(): boolean {
   return TEST_LIST.some((test) => resultsStore.hasItem(test.id));
+}
+
+function initTheme(): ThemeId {
+  const params = new URLSearchParams(window.location.search);
+  const themeParam = params.get("theme") as ThemeId | null;
+  if (themeParam && THEMES.some((t) => t.id === themeParam)) {
+    return themeParam;
+  }
+  return "default";
 }
 
 function initScreen(): Screen {
@@ -61,12 +73,39 @@ function initScreen(): Screen {
   return { type: "landing" };
 }
 
+function ThemePicker() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <Select value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
+        <SelectTrigger
+          size="sm"
+          className="h-8 gap-1.5 bg-background/80 backdrop-blur-sm border-border/60 text-xs"
+          aria-label="Choose theme"
+        >
+          <Palette className="h-3.5 w-3.5 shrink-0" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" side="bottom" align="end">
+          {THEMES.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              <span className="mr-1">{t.emoji}</span>
+              {t.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   const showFAB = hasAnyTestResults();
+  const { theme } = useTheme();
 
   const handleShare = useCallback(() => {
     const count = countCompletedTests();
-    const url = buildShareUrl();
+    const url = buildShareUrl(theme);
 
     // Use native share sheet on mobile (iOS/Android) — most reliable
     if (navigator.share) {
@@ -101,7 +140,7 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
     } catch {
       afterCopy();
     }
-  }, []);
+  }, [theme]);
 
   if (!showFAB) return null;
 
@@ -133,7 +172,7 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   );
 }
 
-export function App() {
+function AppInner() {
   const [screen, setScreen] = useState<Screen>(initScreen);
 
   // Dev escape hatch: window.__devGoToTest(index) jumps to a test without reload
@@ -192,9 +231,18 @@ export function App() {
       {screen.type === "results" && (
         <ResultsScreen onRestart={handleRestart} isShared={!!screen.isShared} />
       )}
+      <ThemePicker />
       <ShareFAB subtle={screen.type === "test"} />
       <Toaster position="bottom-center" />
     </>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider initialTheme={initTheme()}>
+      <AppInner />
+    </ThemeProvider>
   );
 }
 

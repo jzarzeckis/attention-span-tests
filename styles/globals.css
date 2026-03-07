@@ -111,6 +111,122 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ── Kawaii theme ─────────────────────────────────────────────────────────── */
+.theme-kawaii {
+  --radius: 1rem;
+  --font-sans: 'Nunito', sans-serif;
+  --background: oklch(0.97 0.02 350);
+  --foreground: oklch(0.25 0.06 330);
+  --card: oklch(1.0 0 0);
+  --card-foreground: oklch(0.25 0.06 330);
+  --popover: oklch(1.0 0 0);
+  --popover-foreground: oklch(0.25 0.06 330);
+  --primary: oklch(0.65 0.25 350);
+  --primary-foreground: oklch(1.0 0 0);
+  --secondary: oklch(0.92 0.06 320);
+  --secondary-foreground: oklch(0.30 0.08 330);
+  --muted: oklch(0.93 0.04 310);
+  --muted-foreground: oklch(0.52 0.08 330);
+  --accent: oklch(0.75 0.18 290);
+  --accent-foreground: oklch(1.0 0 0);
+  --destructive: oklch(0.65 0.24 27);
+  --border: oklch(0.86 0.08 350);
+  --input: oklch(0.86 0.08 350);
+  --ring: oklch(0.65 0.25 350);
+  --chart-1: oklch(0.65 0.25 350);
+  --chart-2: oklch(0.75 0.18 290);
+  --chart-3: oklch(0.78 0.14 170);
+  --chart-4: oklch(0.82 0.16 80);
+  --chart-5: oklch(0.70 0.22 260);
+}
+
+/* ── Jinx theme (League of Legends) ──────────────────────────────────────── */
+.theme-jinx {
+  --radius: 0.375rem;
+  --font-sans: 'Barlow Condensed', sans-serif;
+  --background: oklch(0.10 0.04 285);
+  --foreground: oklch(0.94 0.02 290);
+  --card: oklch(0.15 0.05 285);
+  --card-foreground: oklch(0.94 0.02 290);
+  --popover: oklch(0.15 0.05 285);
+  --popover-foreground: oklch(0.94 0.02 290);
+  --primary: oklch(0.72 0.24 220);
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.20 0.06 285);
+  --secondary-foreground: oklch(0.94 0.02 290);
+  --muted: oklch(0.20 0.06 285);
+  --muted-foreground: oklch(0.62 0.05 290);
+  --accent: oklch(0.65 0.28 330);
+  --accent-foreground: oklch(0.08 0 0);
+  --destructive: oklch(0.65 0.24 27);
+  --border: oklch(0.30 0.09 285);
+  --input: oklch(0.30 0.09 285);
+  --ring: oklch(0.72 0.24 220);
+  --chart-1: oklch(0.72 0.24 220);
+  --chart-2: oklch(0.65 0.28 330);
+  --chart-3: oklch(0.80 0.20 180);
+  --chart-4: oklch(0.78 0.22 260);
+  --chart-5: oklch(0.65 0.24 27);
+}
+
+/* ── Euphoria theme (HBO) ─────────────────────────────────────────────────── */
+.theme-euphoria {
+  --radius: 0.5rem;
+  --font-sans: 'Playfair Display', serif;
+  --background: oklch(0.08 0.02 280);
+  --foreground: oklch(0.94 0.01 60);
+  --card: oklch(0.13 0.03 280);
+  --card-foreground: oklch(0.94 0.01 60);
+  --popover: oklch(0.13 0.03 280);
+  --popover-foreground: oklch(0.94 0.01 60);
+  --primary: oklch(0.78 0.20 85);
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.18 0.04 280);
+  --secondary-foreground: oklch(0.94 0 0);
+  --muted: oklch(0.18 0.04 280);
+  --muted-foreground: oklch(0.58 0.04 280);
+  --accent: oklch(0.70 0.22 340);
+  --accent-foreground: oklch(0.08 0 0);
+  --destructive: oklch(0.65 0.24 27);
+  --border: oklch(0.25 0.06 280);
+  --input: oklch(0.25 0.06 280);
+  --ring: oklch(0.78 0.20 85);
+  --chart-1: oklch(0.78 0.20 85);
+  --chart-2: oklch(0.70 0.22 340);
+  --chart-3: oklch(0.65 0.18 290);
+  --chart-4: oklch(0.75 0.16 60);
+  --chart-5: oklch(0.65 0.24 27);
+}
+
+/* ── Last of Us theme ─────────────────────────────────────────────────────── */
+.theme-lastofus {
+  --radius: 0.25rem;
+  --font-sans: 'Courier Prime', monospace;
+  --background: oklch(0.12 0.01 70);
+  --foreground: oklch(0.88 0.02 80);
+  --card: oklch(0.17 0.02 65);
+  --card-foreground: oklch(0.88 0.02 80);
+  --popover: oklch(0.17 0.02 65);
+  --popover-foreground: oklch(0.88 0.02 80);
+  --primary: oklch(0.58 0.12 145);
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.22 0.02 65);
+  --secondary-foreground: oklch(0.88 0.02 80);
+  --muted: oklch(0.22 0.02 65);
+  --muted-foreground: oklch(0.54 0.02 70);
+  --accent: oklch(0.58 0.14 48);
+  --accent-foreground: oklch(0.08 0 0);
+  --destructive: oklch(0.62 0.20 27);
+  --border: oklch(0.28 0.03 65);
+  --input: oklch(0.28 0.03 65);
+  --ring: oklch(0.58 0.12 145);
+  --chart-1: oklch(0.58 0.12 145);
+  --chart-2: oklch(0.58 0.14 48);
+  --chart-3: oklch(0.65 0.10 100);
+  --chart-4: oklch(0.52 0.08 200);
+  --chart-5: oklch(0.62 0.20 27);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
