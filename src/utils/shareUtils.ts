@@ -65,11 +65,22 @@ export async function generateScoreImage(
   ctx.fillStyle = "#09090b";
   ctx.fillRect(0, 0, size, size);
 
-  // App title
-  ctx.fillStyle = "#52525b";
-  ctx.font = `600 34px ${font}`;
+  // App title with pill highlight
+  const titleText = "BRAINROT METER";
+  ctx.font = `700 38px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText("BRAINROT METER", size / 2, 120);
+  const titleWidth = ctx.measureText(titleText).width;
+  const titlePillPadX = 28;
+  const titlePillPadY = 16;
+  const titlePillH = 38 + titlePillPadY * 2;
+  const titlePillY = 68;
+  // Pill background
+  ctx.fillStyle = "#3f3f46";
+  roundedRect(ctx, size / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
+  ctx.fill();
+  // Title text
+  ctx.fillStyle = "#fafafa";
+  ctx.fillText(titleText, size / 2, titlePillY + titlePillH - titlePillPadY - 4);
 
   // Top separator
   ctx.strokeStyle = "#27272a";
@@ -129,10 +140,24 @@ export async function generateScoreImage(
   ctx.lineTo(size - pad, 940);
   ctx.stroke();
 
-  // CTA
-  ctx.fillStyle = "#52525b";
+  // CTA — two-part text with URL highlighted
+  const ctaPrefix = "Test your own attention span  →  ";
+  const ctaUrl = "brainrot-meter.vercel.app";
   ctx.font = `28px ${font}`;
-  ctx.fillText("Test your own attention span →  brainrotmeter.com", size / 2, 1000);
+  const prefixW = ctx.measureText(ctaPrefix).width;
+  ctx.font = `700 28px ${font}`;
+  const urlW = ctx.measureText(ctaUrl).width;
+  const ctaStartX = size / 2 - (prefixW + urlW) / 2;
+
+  ctx.fillStyle = "#71717a";
+  ctx.font = `28px ${font}`;
+  ctx.textAlign = "left";
+  ctx.fillText(ctaPrefix, ctaStartX, 1000);
+
+  ctx.fillStyle = "#e4e4e7";
+  ctx.font = `700 28px ${font}`;
+  ctx.fillText(ctaUrl, ctaStartX + prefixW, 1000);
+  ctx.textAlign = "center";
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");
