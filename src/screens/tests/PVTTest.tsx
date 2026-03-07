@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { resultsStore } from "@/utils/resultsStore";
+import type { PVTStats } from "@/types";
+export type { PVTStats };
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,15 +22,6 @@ const LAPSE_THRESHOLD_MS = 500;
 
 type Phase = "instructions" | "countdown" | "running" | "complete";
 
-export interface PVTStats {
-  medianRT: number;
-  meanRT: number;
-  lapses: number;
-  lapseRate: number;
-  falseStarts: number;
-  totalTrials: number;
-  rts: number[];
-}
 
 function median(arr: number[]): number {
   if (arr.length === 0) return 0;

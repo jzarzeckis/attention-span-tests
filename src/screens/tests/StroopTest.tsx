@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { resultsStore } from "@/utils/resultsStore";
+import type { StroopStats } from "@/types";
+export type { StroopStats };
 import { ReadySetGo } from "@/components/ReadySetGo";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,12 +61,6 @@ interface TrialResult {
   rt: number;
 }
 
-export interface StroopStats {
-  condition1: { accuracy: number; meanRT: number };
-  condition2: { accuracy: number; meanRT: number };
-  condition3: { accuracy: number; meanRT: number };
-  interferenceScore: number;
-}
 
 type Phase =
   | "instructions"

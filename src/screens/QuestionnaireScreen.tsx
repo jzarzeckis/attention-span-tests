@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { resultsStore } from "@/utils/resultsStore";
+import type { SelfReportData } from "@/types";
+export type { SelfReportData };
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-
-export interface SelfReportData {
-  age: string;
-  shortFormUsage: string;
-  restlessness: string;
-  selfRatedAttention: number;
-  screenTime: string;
-}
 
 interface QuestionnaireScreenProps {
   onComplete: (data: SelfReportData) => void;

@@ -6,11 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import type { SARTStats } from "./tests/SARTTest";
-import type { StroopStats } from "./tests/StroopTest";
-import type { PVTStats } from "./tests/PVTTest";
-import type { GoNoGoStats } from "./tests/GoNoGoTest";
-import type { SelfReportData } from "./QuestionnaireScreen";
+import type { SARTStats, StroopStats, PVTStats, GoNoGoStats, SelfReportData, SkippedResult } from "@/types";
 
 interface ResultsScreenProps {
   onRestart: () => void;
@@ -41,8 +37,8 @@ function scoreLinear(value: number, goodThreshold: number, badThreshold: number)
   }
 }
 
-function isSkipped(val: unknown): boolean {
-  return !!(val as { skipped?: boolean } | null)?.skipped;
+function isSkipped(val: SARTStats | StroopStats | PVTStats | GoNoGoStats | SkippedResult): val is SkippedResult {
+  return (val as SkippedResult).skipped === true;
 }
 
 function calculateScores(): TestScores {
@@ -50,17 +46,15 @@ function calculateScores(): TestScores {
 
   const sart = resultsStore.getItem("sart");
   if (sart && !isSkipped(sart)) {
-    const s = sart as SARTStats;
-    scores.sart = scoreLinear(s.commissionRate * 100, 11, 30);
+    scores.sart = scoreLinear(sart.commissionRate * 100, 11, 30);
   }
 
   const stroop = resultsStore.getItem("stroop");
   if (stroop && !isSkipped(stroop)) {
-    const s = stroop as StroopStats;
     // C3 accuracy (good: ≥85%, bad: ≤45% — chance is 25%)
-    const c3AccScore = scoreLinear(s.condition3.accuracy, 85, 45);
+    const c3AccScore = scoreLinear(stroop.condition3.accuracy, 85, 45);
     // Interference effect (good: ≤100ms, bad: ≥400ms)
-    const interfScore = scoreLinear(s.interferenceScore, 100, 400);
+    const interfScore = scoreLinear(stroop.interferenceScore, 100, 400);
     // Harmonic mean: collapses to 0 if either component is 0,
     // preventing high scores from random clicking (which gives ~0 interference but ~0 C3 accuracy)
     const denom = c3AccScore + interfScore;
@@ -69,16 +63,14 @@ function calculateScores(): TestScores {
 
   const pvt = resultsStore.getItem("pvt");
   if (pvt && !isSkipped(pvt)) {
-    const p = pvt as PVTStats;
-    const rtScore = scoreLinear(p.medianRT, 300, 500);
-    const lapseScore = scoreLinear(p.lapseRate * 100, 5, 25);
+    const rtScore = scoreLinear(pvt.medianRT, 300, 500);
+    const lapseScore = scoreLinear(pvt.lapseRate * 100, 5, 25);
     scores.pvt = (rtScore + lapseScore) / 2;
   }
 
   const gonogo = resultsStore.getItem("gonogo");
   if (gonogo && !isSkipped(gonogo)) {
-    const g = gonogo as GoNoGoStats;
-    scores.gonogo = scoreLinear(g.commissionErrorRate * 100, 15, 40);
+    scores.gonogo = scoreLinear(gonogo.commissionErrorRate * 100, 15, 40);
   }
 
   return scores;
@@ -240,12 +232,11 @@ function buildDetails(scores: TestScores): TestDetail[] {
     if (isSkipped(sart)) {
       details.push({ key: "sart", name: "Sustained Attention (SART)", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.sart, skipped: true });
     } else {
-      const s = sart as SARTStats;
       details.push({
         key: "sart",
         name: "Sustained Attention (SART)",
         score: scores.sart,
-        metric: `Commission error rate: ${(s.commissionRate * 100).toFixed(1)}% | Mean RT: ${s.meanRT.toFixed(0)}ms | RT variability (CV): ${s.rtCV.toFixed(2)}`,
+        metric: `Commission error rate: ${(sart.commissionRate * 100).toFixed(1)}% | Mean RT: ${sart.meanRT.toFixed(0)}ms | RT variability (CV): ${sart.rtCV.toFixed(2)}`,
         baseline: "Healthy adults: 8–11% commission errors, ~332–375ms mean RT (Robertson et al., 1997)",
         learnMore: LEARN_MORE.sart,
       });
@@ -257,12 +248,11 @@ function buildDetails(scores: TestScores): TestDetail[] {
     if (isSkipped(stroop)) {
       details.push({ key: "stroop", name: "Stroop Color-Word", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.stroop, skipped: true });
     } else {
-      const s = stroop as StroopStats;
       details.push({
         key: "stroop",
         name: "Stroop Color-Word",
         score: scores.stroop,
-        metric: `Interference effect: ${s.interferenceScore.toFixed(0)}ms | C1 (word reading): ${s.condition1.meanRT.toFixed(0)}ms (${s.condition1.accuracy.toFixed(0)}%) | C2 (color naming): ${s.condition2.meanRT.toFixed(0)}ms (${s.condition2.accuracy.toFixed(0)}%) | C3 (incongruent): ${s.condition3.meanRT.toFixed(0)}ms (${s.condition3.accuracy.toFixed(0)}%)`,
+        metric: `Interference effect: ${stroop.interferenceScore.toFixed(0)}ms | C1 (word reading): ${stroop.condition1.meanRT.toFixed(0)}ms (${stroop.condition1.accuracy.toFixed(0)}%) | C2 (color naming): ${stroop.condition2.meanRT.toFixed(0)}ms (${stroop.condition2.accuracy.toFixed(0)}%) | C3 (incongruent): ${stroop.condition3.meanRT.toFixed(0)}ms (${stroop.condition3.accuracy.toFixed(0)}%)`,
         baseline: "Typical interference effect: ~100ms; larger = weaker executive control",
         learnMore: LEARN_MORE.stroop,
       });
@@ -274,12 +264,11 @@ function buildDetails(scores: TestScores): TestDetail[] {
     if (isSkipped(pvt)) {
       details.push({ key: "pvt", name: "Psychomotor Vigilance (PVT)", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.pvt, skipped: true });
     } else {
-      const p = pvt as PVTStats;
       details.push({
         key: "pvt",
         name: "Psychomotor Vigilance (PVT)",
         score: scores.pvt,
-        metric: `Median RT: ${p.medianRT.toFixed(0)}ms | Lapses (>500ms): ${p.lapses} (${(p.lapseRate * 100).toFixed(1)}%) | False starts: ${p.falseStarts}`,
+        metric: `Median RT: ${pvt.medianRT.toFixed(0)}ms | Lapses (>500ms): ${pvt.lapses} (${(pvt.lapseRate * 100).toFixed(1)}%) | False starts: ${pvt.falseStarts}`,
         baseline: "Healthy rested adults: ~250ms median RT, <5% lapse rate (Basner & Dinges, 2011)",
         learnMore: LEARN_MORE.pvt,
       });
@@ -291,12 +280,11 @@ function buildDetails(scores: TestScores): TestDetail[] {
     if (isSkipped(gonogo)) {
       details.push({ key: "gonogo", name: "Go/No-Go", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.gonogo, skipped: true });
     } else {
-      const g = gonogo as GoNoGoStats;
       details.push({
         key: "gonogo",
         name: "Go/No-Go",
         score: scores.gonogo,
-        metric: `Commission errors: ${(g.commissionErrorRate * 100).toFixed(1)}% | Omission errors: ${(g.omissionErrorRate * 100).toFixed(1)}% | Mean RT (Go hits): ${g.meanRT.toFixed(0)}ms | RT CV: ${g.rtCV.toFixed(2)}`,
+        metric: `Commission errors: ${(gonogo.commissionErrorRate * 100).toFixed(1)}% | Omission errors: ${(gonogo.omissionErrorRate * 100).toFixed(1)}% | Mean RT (Go hits): ${gonogo.meanRT.toFixed(0)}ms | RT CV: ${gonogo.rtCV.toFixed(2)}`,
         baseline: "Healthy adolescents/adults: commission error rate ~15–20% (decreases with age through ~16)",
         learnMore: LEARN_MORE.gonogo,
       });
@@ -496,7 +484,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
-  const selfReport = (resultsStore.getItem("selfReport") as SelfReportData | null);
+  const selfReport = resultsStore.getItem("selfReport");
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4 pb-24">

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { resultsStore } from "@/utils/resultsStore";
+import type { SARTStats } from "@/types";
+export type { SARTStats };
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,15 +30,6 @@ interface TrialRecord {
   rt: number | null;
 }
 
-export interface SARTStats {
-  commissionErrors: number;
-  commissionRate: number;
-  omissionErrors: number;
-  omissionRate: number;
-  meanRT: number;
-  rtCV: number;
-  totalTrials: number;
-}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];

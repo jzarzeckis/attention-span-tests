@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { resultsStore } from "@/utils/resultsStore";
+import type { GoNoGoStats } from "@/types";
+export type { GoNoGoStats };
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,17 +23,6 @@ const ISI_MS = 1000;
 type Phase = "instructions" | "countdown" | "running" | "complete";
 type TrialType = "go" | "nogo";
 
-export interface GoNoGoStats {
-  commissionErrors: number;
-  commissionErrorRate: number;
-  omissionErrors: number;
-  omissionErrorRate: number;
-  meanRT: number;
-  rtCV: number; // coefficient of variation = SD / mean
-  totalTrials: number;
-  goTrials: number;
-  nogoTrials: number;
-}
 
 function buildTrialSequence(total: number, nogoRatio: number): TrialType[] {
   const nogoCount = Math.round(total * nogoRatio);
