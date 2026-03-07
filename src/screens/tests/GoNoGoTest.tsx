@@ -220,7 +220,7 @@ export function GoNoGoTest({ onComplete }: Props) {
       el.removeEventListener("touchstart", onTouch);
       el.removeEventListener("mousedown", onMouse);
     };
-  }, [handleTap]);
+  }, [handleTap, phase]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
