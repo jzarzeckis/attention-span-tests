@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { resultsStore } from "@/utils/resultsStore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -97,7 +98,7 @@ export function PVTTest({ onComplete }: Props) {
         totalTrials: rts.length,
         rts,
       };
-      sessionStorage.setItem("pvt", JSON.stringify(stats));
+      resultsStore.setItem("pvt", stats);
       phaseRef.current = "complete";
       setPhase("complete");
     } else {

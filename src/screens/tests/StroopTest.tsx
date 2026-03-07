@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { resultsStore } from "@/utils/resultsStore";
 import { ReadySetGo } from "@/components/ReadySetGo";
 import { Button } from "@/components/ui/button";
 import {
@@ -214,7 +215,7 @@ export function StroopTest({ onComplete }: Props) {
               condition3: s3,
               interferenceScore: s3.meanRT - s2.meanRT,
             };
-            sessionStorage.setItem("stroop", JSON.stringify(stats));
+            resultsStore.setItem("stroop", stats);
             setPhase("complete");
           }
         } else {

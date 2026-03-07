@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
+import { resultsStore } from "@/utils/resultsStore";
 import { SARTTest } from "./tests/SARTTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
@@ -56,8 +57,8 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
 
   const handleSkip = () => {
     const testId = test?.id;
-    if (testId && !sessionStorage.getItem(testId)) {
-      sessionStorage.setItem(testId, JSON.stringify({ skipped: true }));
+    if (testId && !resultsStore.hasItem(testId)) {
+      resultsStore.setItem(testId, { skipped: true });
     }
     safeNext();
   };

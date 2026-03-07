@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { resultsStore } from "@/utils/resultsStore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -127,7 +128,7 @@ export function SARTTest({ onComplete }: Props) {
         setPhase("practice-done");
         phaseRef.current = "practice-done";
       } else {
-        sessionStorage.setItem("sart", JSON.stringify(stats));
+        resultsStore.setItem("sart", stats);
         setPhase("complete");
         phaseRef.current = "complete";
       }

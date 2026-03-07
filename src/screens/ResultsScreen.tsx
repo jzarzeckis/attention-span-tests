@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { encodeResults, hasAnyTestResults } from "@/utils/shareUtils";
+import { resultsStore } from "@/utils/resultsStore";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,22 +41,22 @@ function scoreLinear(value: number, goodThreshold: number, badThreshold: number)
   }
 }
 
-function isSkipped(raw: string): boolean {
-  try { return !!(JSON.parse(raw) as { skipped?: boolean }).skipped; } catch { return false; }
+function isSkipped(val: unknown): boolean {
+  return !!(val as { skipped?: boolean } | null)?.skipped;
 }
 
 function calculateScores(): TestScores {
   const scores: TestScores = { sart: null, stroop: null, pvt: null, gonogo: null };
 
-  const sartRaw = sessionStorage.getItem("sart");
-  if (sartRaw && !isSkipped(sartRaw)) {
-    const s = JSON.parse(sartRaw) as SARTStats;
+  const sart = resultsStore.getItem("sart");
+  if (sart && !isSkipped(sart)) {
+    const s = sart as SARTStats;
     scores.sart = scoreLinear(s.commissionRate * 100, 11, 30);
   }
 
-  const stroopRaw = sessionStorage.getItem("stroop");
-  if (stroopRaw && !isSkipped(stroopRaw)) {
-    const s = JSON.parse(stroopRaw) as StroopStats;
+  const stroop = resultsStore.getItem("stroop");
+  if (stroop && !isSkipped(stroop)) {
+    const s = stroop as StroopStats;
     // C3 accuracy (good: ≥85%, bad: ≤45% — chance is 25%)
     const c3AccScore = scoreLinear(s.condition3.accuracy, 85, 45);
     // Interference effect (good: ≤100ms, bad: ≥400ms)
@@ -67,17 +67,17 @@ function calculateScores(): TestScores {
     scores.stroop = denom > 0 ? Math.round(2 * c3AccScore * interfScore / denom) : 0;
   }
 
-  const pvtRaw = sessionStorage.getItem("pvt");
-  if (pvtRaw && !isSkipped(pvtRaw)) {
-    const p = JSON.parse(pvtRaw) as PVTStats;
+  const pvt = resultsStore.getItem("pvt");
+  if (pvt && !isSkipped(pvt)) {
+    const p = pvt as PVTStats;
     const rtScore = scoreLinear(p.medianRT, 300, 500);
     const lapseScore = scoreLinear(p.lapseRate * 100, 5, 25);
     scores.pvt = (rtScore + lapseScore) / 2;
   }
 
-  const gonogoRaw = sessionStorage.getItem("gonogo");
-  if (gonogoRaw && !isSkipped(gonogoRaw)) {
-    const g = JSON.parse(gonogoRaw) as GoNoGoStats;
+  const gonogo = resultsStore.getItem("gonogo");
+  if (gonogo && !isSkipped(gonogo)) {
+    const g = gonogo as GoNoGoStats;
     scores.gonogo = scoreLinear(g.commissionErrorRate * 100, 15, 40);
   }
 
@@ -232,12 +232,12 @@ const LEARN_MORE: Record<keyof TestScores, LearnMore> = {
 function buildDetails(scores: TestScores): TestDetail[] {
   const details: TestDetail[] = [];
 
-  const sartRaw = sessionStorage.getItem("sart");
-  if (sartRaw) {
-    if (isSkipped(sartRaw)) {
+  const sart = resultsStore.getItem("sart");
+  if (sart) {
+    if (isSkipped(sart)) {
       details.push({ key: "sart", name: "Sustained Attention (SART)", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.sart, skipped: true });
     } else {
-      const s = JSON.parse(sartRaw) as SARTStats;
+      const s = sart as SARTStats;
       details.push({
         key: "sart",
         name: "Sustained Attention (SART)",
@@ -249,12 +249,12 @@ function buildDetails(scores: TestScores): TestDetail[] {
     }
   }
 
-  const stroopRaw = sessionStorage.getItem("stroop");
-  if (stroopRaw) {
-    if (isSkipped(stroopRaw)) {
+  const stroop = resultsStore.getItem("stroop");
+  if (stroop) {
+    if (isSkipped(stroop)) {
       details.push({ key: "stroop", name: "Stroop Color-Word", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.stroop, skipped: true });
     } else {
-      const s = JSON.parse(stroopRaw) as StroopStats;
+      const s = stroop as StroopStats;
       details.push({
         key: "stroop",
         name: "Stroop Color-Word",
@@ -266,12 +266,12 @@ function buildDetails(scores: TestScores): TestDetail[] {
     }
   }
 
-  const pvtRaw = sessionStorage.getItem("pvt");
-  if (pvtRaw) {
-    if (isSkipped(pvtRaw)) {
+  const pvt = resultsStore.getItem("pvt");
+  if (pvt) {
+    if (isSkipped(pvt)) {
       details.push({ key: "pvt", name: "Psychomotor Vigilance (PVT)", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.pvt, skipped: true });
     } else {
-      const p = JSON.parse(pvtRaw) as PVTStats;
+      const p = pvt as PVTStats;
       details.push({
         key: "pvt",
         name: "Psychomotor Vigilance (PVT)",
@@ -283,12 +283,12 @@ function buildDetails(scores: TestScores): TestDetail[] {
     }
   }
 
-  const gonogoRaw = sessionStorage.getItem("gonogo");
-  if (gonogoRaw) {
-    if (isSkipped(gonogoRaw)) {
+  const gonogo = resultsStore.getItem("gonogo");
+  if (gonogo) {
+    if (isSkipped(gonogo)) {
       details.push({ key: "gonogo", name: "Go/No-Go", score: null, metric: "", baseline: "", learnMore: LEARN_MORE.gonogo, skipped: true });
     } else {
-      const g = JSON.parse(gonogoRaw) as GoNoGoStats;
+      const g = gonogo as GoNoGoStats;
       details.push({
         key: "gonogo",
         name: "Go/No-Go",
@@ -493,20 +493,7 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
-  const selfReport: SelfReportData | null = (() => {
-    const raw = sessionStorage.getItem("selfReport");
-    return raw ? (JSON.parse(raw) as SelfReportData) : null;
-  })();
-
-  // Keep browser URL in sync so copy-pasting it works like the share button
-  useEffect(() => {
-    if (!hasAnyTestResults()) return;
-    const encoded = encodeResults();
-    history.replaceState(null, "", `?r=${encoded}`);
-    return () => {
-      history.replaceState(null, "", window.location.pathname);
-    };
-  }, []);
+  const selfReport = (resultsStore.getItem("selfReport") as SelfReportData | null);
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4 pb-24">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resultsStore } from "@/utils/resultsStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -69,7 +70,7 @@ export function QuestionnaireScreen({ onComplete, onSkip }: QuestionnaireScreenP
       selfRatedAttention,
       screenTime,
     };
-    sessionStorage.setItem("selfReport", JSON.stringify(data));
+    resultsStore.setItem("selfReport", data);
     onComplete(data);
   };
 

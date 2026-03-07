@@ -1,25 +1,15 @@
+import { resultsStore } from "./resultsStore";
+
 const TEST_KEYS = ["sart", "stroop", "pvt", "gonogo"] as const;
 
-export function encodeResults(): string {
-  const data: Record<string, unknown> = {};
-  for (const id of TEST_KEYS) {
-    const raw = sessionStorage.getItem(id);
-    if (raw) data[id] = JSON.parse(raw);
-  }
-  const selfReportRaw = sessionStorage.getItem("selfReport");
-  if (selfReportRaw) data["selfReport"] = JSON.parse(selfReportRaw);
-  return btoa(JSON.stringify(data));
-}
-
 export function buildShareUrl(): string {
-  const encoded = encodeResults();
-  return `${window.location.origin}/?r=${encoded}`;
+  return `${window.location.origin}/?r=${resultsStore.encode()}`;
 }
 
 export function countCompletedTests(): number {
-  return TEST_KEYS.filter((id) => sessionStorage.getItem(id) !== null).length;
+  return TEST_KEYS.filter((id) => resultsStore.hasItem(id)).length;
 }
 
 export function hasAnyTestResults(): boolean {
-  return TEST_KEYS.some((id) => sessionStorage.getItem(id) !== null);
+  return TEST_KEYS.some((id) => resultsStore.hasItem(id));
 }

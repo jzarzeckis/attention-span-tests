@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { resultsStore } from "@/utils/resultsStore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -104,7 +105,7 @@ export function GoNoGoTest({ onComplete }: Props) {
       goTrials: goCount,
       nogoTrials: nogoCount,
     };
-    sessionStorage.setItem("gonogo", JSON.stringify(stats));
+    resultsStore.setItem("gonogo", stats);
     phaseRef.current = "complete";
     setPhase("complete");
   }, [clearAllTimers]);
@@ -208,6 +209,28 @@ export function GoNoGoTest({ onComplete }: Props) {
 
   useEffect(() => () => clearAllTimers(), [clearAllTimers]);
 
+  // Attach touchstart + mousedown directly so dragging off the element
+  // does not turn a No-Go tap into a successful abstain.
+  const tapAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tapAreaRef.current;
+    if (!el) return;
+    const onTouch = (e: TouchEvent) => {
+      e.preventDefault(); // suppresses subsequent mousedown/click on touch devices
+      handleTap();
+    };
+    const onMouse = (e: MouseEvent) => {
+      e.preventDefault();
+      handleTap();
+    };
+    el.addEventListener("touchstart", onTouch, { passive: false });
+    el.addEventListener("mousedown", onMouse);
+    return () => {
+      el.removeEventListener("touchstart", onTouch);
+      el.removeEventListener("mousedown", onMouse);
+    };
+  }, [handleTap]);
+
   if (phase === "instructions") {
     return (
       <Card>
@@ -259,10 +282,12 @@ export function GoNoGoTest({ onComplete }: Props) {
 
         <Progress value={progress} />
 
-        <button
-          onClick={handleTap}
-          className="w-full h-72 rounded-xl bg-muted flex items-center justify-center select-none focus:outline-none cursor-pointer"
+        <div
+          ref={tapAreaRef}
+          role="button"
+          className="w-full h-72 rounded-xl bg-muted flex items-center justify-center select-none cursor-pointer"
           aria-label="Tap on green circles only"
+          style={{ touchAction: "none", userSelect: "none" }}
         >
           {stimulusVisible ? (
             <div className="flex flex-col items-center gap-3">
@@ -281,7 +306,7 @@ export function GoNoGoTest({ onComplete }: Props) {
               <span className="text-sm text-muted-foreground">Wait…</span>
             </div>
           )}
-        </button>
+        </div>
       </div>
     );
   }
