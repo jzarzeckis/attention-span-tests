@@ -75,8 +75,12 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
       const file = new File([imageBlob], "brainrot-score.png", { type: "image/png" });
       const shareData: ShareData = { title: "Brainrot Meter", text: "I just tested my attention span.", files: [file] };
       if (navigator.canShare?.(shareData)) {
-        navigator.share(shareData).catch(() => {});
-        return;
+        try {
+          await navigator.share(shareData);
+          return;
+        } catch {
+          // Share failed or was dismissed — fall through to download
+        }
       }
     }
 
