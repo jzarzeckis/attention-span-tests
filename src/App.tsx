@@ -135,13 +135,15 @@ function ShareFAB() {
         {labelText}
       </span>
       <Button
-        size="icon"
-        className="rounded-full shadow-lg h-12 w-12"
+        className="rounded-full shadow-lg h-12 px-5 gap-2 font-semibold"
         onClick={handleShare}
         aria-label="Share results"
         style={{ touchAction: "manipulation" }}
       >
-        {copied ? <Check className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
+        {copied ? <Check className="h-5 w-5 shrink-0" /> : <Share2 className="h-5 w-5 shrink-0" />}
+        <span className="pointer-events-none">
+          {copied ? "Link copied!" : "Flex my score"}
+        </span>
       </Button>
     </div>
   );
