@@ -6,10 +6,10 @@ import { type Screen, TEST_LIST } from "@/types";
 import { LandingScreen } from "@/screens/LandingScreen";
 import { QuestionnaireScreen } from "@/screens/QuestionnaireScreen";
 import { TestScreen } from "@/screens/TestScreen";
-import { ResultsScreen } from "@/screens/ResultsScreen";
+import { ResultsScreen, calculateScores, compositeScore, getRank } from "@/screens/ResultsScreen";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { buildShareUrl, hasAnyTestResults, countCompletedTests } from "@/utils/shareUtils";
+import { generateScoreImage, hasAnyTestResults } from "@/utils/shareUtils";
 import { resultsStore } from "@/utils/resultsStore";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -64,43 +64,41 @@ function initScreen(): Screen {
 function ShareFAB({ subtle = false }: { subtle?: boolean }) {
   const showFAB = hasAnyTestResults();
 
-  const handleShare = useCallback(() => {
-    const count = countCompletedTests();
-    const url = buildShareUrl();
+  const handleShare = useCallback(async () => {
+    const scores = calculateScores();
+    const composite = compositeScore(scores);
 
-    // Use native share sheet on mobile (iOS/Android) — most reliable
-    if (navigator.share) {
-      navigator.share({ title: "Brainrot Meter Results", url }).catch(() => {});
+    if (composite === null) {
+      toast.error("Complete at least one test to share your score.");
       return;
     }
 
-    const afterCopy = () => {
-      const message =
-        count < 4
-          ? `Sharing ${count} of 4 tests — finish the rest for your full score!`
-          : "Link copied!";
-      toast.success(message);
-    };
+    const rank = getRank(composite);
+    const blob = await generateScoreImage(composite, rank.badge, rank.summary);
 
-    // Clipboard API (requires secure context)
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).then(afterCopy).catch(afterCopy);
+    if (!blob) {
+      toast.error("Could not generate image.");
       return;
     }
 
-    // Final fallback: execCommand (works in non-HTTPS contexts)
-    try {
-      const el = document.createElement("textarea");
-      el.value = url;
-      el.style.cssText = "position:fixed;opacity:0;pointer-events:none;";
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      afterCopy();
-    } catch {
-      afterCopy();
+    const file = new File([blob], "brainrot-score.png", { type: "image/png" });
+
+    // Mobile: Web Share API with file support
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ title: "My Brainrot Score", files: [file] }).catch(() => {});
+      return;
     }
+
+    // Desktop / fallback: download the image
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = "brainrot-score.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+    toast.success("Score image saved!");
   }, []);
 
   if (!showFAB) return null;

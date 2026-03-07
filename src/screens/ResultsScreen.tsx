@@ -41,7 +41,7 @@ function isSkipped(val: SARTStats | StroopStats | PVTStats | GoNoGoStats | Skipp
   return (val as SkippedResult).skipped === true;
 }
 
-function calculateScores(): TestScores {
+export function calculateScores(): TestScores {
   const scores: TestScores = { sart: null, stroop: null, pvt: null, gonogo: null };
 
   const sart = resultsStore.getItem("sart");
@@ -76,7 +76,7 @@ function calculateScores(): TestScores {
   return scores;
 }
 
-function compositeScore(scores: TestScores): number | null {
+export function compositeScore(scores: TestScores): number | null {
   const values = Object.values(scores).filter((v): v is number => v !== null);
   if (values.length === 0) return null;
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
@@ -113,7 +113,7 @@ const RANKS = [
   },
 ] satisfies { threshold: number; badge: string; label: string; summary: string; variant: "default" | "secondary" | "destructive" | "outline" }[];
 
-function getRank(score: number) {
+export function getRank(score: number) {
   return RANKS.find((r) => score >= r.threshold) ?? RANKS[RANKS.length - 1]!;
 }
 
