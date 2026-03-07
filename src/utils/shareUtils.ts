@@ -1,4 +1,4 @@
-const TEST_KEYS = ["sart", "focus", "stroop", "pvt", "delay", "gonogo"] as const;
+const TEST_KEYS = ["sart", "stroop", "pvt", "gonogo"] as const;
 
 export function encodeResults(): string {
   const data: Record<string, unknown> = {};

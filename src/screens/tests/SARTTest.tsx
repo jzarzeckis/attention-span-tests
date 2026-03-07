@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { ReadySetGo } from "@/components/ReadySetGo";
 
 const STIMULUS_MS = 250;
 const TRIAL_MS = 1150;
@@ -17,7 +18,7 @@ const TARGET_DIGIT = 3;
 const PRACTICE_CYCLES = 1; // 9 trials
 const MAIN_CYCLES = 25;    // 225 trials
 
-type Phase = "instructions" | "practice" | "practice-done" | "main" | "complete";
+type Phase = "instructions" | "countdown" | "practice" | "practice-done" | "complete" | "main";
 
 interface TrialRecord {
   digit: number;
@@ -88,6 +89,7 @@ interface Props {
 
 export function SARTTest({ onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>("instructions");
+  const pendingPhase = useRef<"practice" | "main">("practice");
   const [trialIdx, setTrialIdx] = useState(0);
   const [totalTrials, setTotalTrials] = useState(0);
   const [digitVisible, setDigitVisible] = useState(false);
@@ -226,13 +228,17 @@ export function SARTTest({ onComplete }: Props) {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => startPhase("practice")}
+            onClick={() => { pendingPhase.current = "practice"; setPhase("countdown"); }}
           >
             Start Practice
           </Button>
         </CardFooter>
       </Card>
     );
+  }
+
+  if (phase === "countdown") {
+    return <ReadySetGo onDone={() => startPhase(pendingPhase.current)} />;
   }
 
   if (phase === "practice" || phase === "main") {
@@ -308,7 +314,7 @@ export function SARTTest({ onComplete }: Props) {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => startPhase("main")}
+            onClick={() => { pendingPhase.current = "main"; setPhase("countdown"); }}
           >
             Begin Test
           </Button>

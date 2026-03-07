@@ -9,13 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ReadySetGo } from "@/components/ReadySetGo";
 
 const TOTAL_TRIALS = 100;
 const NOGO_RATIO = 0.2; // 20% No-Go trials
 const STIMULUS_DURATION_MS = 500;
 const ISI_MS = 1000;
 
-type Phase = "instructions" | "running" | "complete";
+type Phase = "instructions" | "countdown" | "running" | "complete";
 type TrialType = "go" | "nogo";
 
 export interface GoNoGoStats {
@@ -231,12 +232,16 @@ export function GoNoGoTest({ onComplete }: Props) {
           </p>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" size="lg" onClick={startTest}>
+          <Button className="w-full" size="lg" onClick={() => { phaseRef.current = "countdown"; setPhase("countdown"); }}>
             Start Test
           </Button>
         </CardFooter>
       </Card>
     );
+  }
+
+  if (phase === "countdown") {
+    return <ReadySetGo onDone={startTest} />;
   }
 
   if (phase === "running") {

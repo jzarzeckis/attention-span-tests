@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -41,23 +42,43 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   const progressPercent = (testIndex / totalTests) * 100;
   const isLastTest = testIndex === totalTests - 1;
 
+  // Prevent double-advancing (skip + test completion racing)
+  const doneRef = useRef(false);
+  useEffect(() => {
+    doneRef.current = false;
+  }, [testIndex]);
+
+  const safeNext = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    onNext();
+  }, [onNext]);
+
+  const handleSkip = () => {
+    const testId = test?.id;
+    if (testId && !sessionStorage.getItem(testId)) {
+      sessionStorage.setItem(testId, JSON.stringify({ skipped: true }));
+    }
+    safeNext();
+  };
+
   const renderTest = () => {
     if (test?.id === "sart") {
-      return <SARTTest onComplete={onNext} />;
+      return <SARTTest onComplete={safeNext} />;
     }
     if (test?.id === "stroop") {
-      return <StroopTest onComplete={onNext} />;
+      return <StroopTest onComplete={safeNext} />;
     }
     if (test?.id === "pvt") {
-      return <PVTTest onComplete={onNext} />;
+      return <PVTTest onComplete={safeNext} />;
     }
     if (test?.id === "gonogo") {
-      return <GoNoGoTest onComplete={onNext} />;
+      return <GoNoGoTest onComplete={safeNext} />;
     }
     return (
       <PlaceholderTest
         name={(test as { name: string } | undefined)?.name ?? ""}
-        onNext={onNext}
+        onNext={safeNext}
         isLastTest={isLastTest}
       />
     );
@@ -75,6 +96,15 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
         </div>
 
         {renderTest()}
+
+        <div className="flex justify-center pt-1">
+          <button
+            onClick={handleSkip}
+            className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 underline underline-offset-2 transition-colors"
+          >
+            Skip this test
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
 
         <Card>
           <CardHeader>
-            <CardTitle>Six tests. No mercy.</CardTitle>
+            <CardTitle>Four tests. No mercy.</CardTitle>
             <CardDescription>
               {TEST_LIST.length} scientifically-grounded cognitive tests measuring your attention, impulse control, and focus duration. ~15-20 minutes. Results may be humbling.
             </CardDescription>

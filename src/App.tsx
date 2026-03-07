@@ -85,10 +85,17 @@ function ShareFAB() {
   const handleShare = useCallback(() => {
     const count = countCompletedTests();
     const url = buildShareUrl();
+
+    // Use native share sheet on mobile (iOS/Android) — most reliable
+    if (navigator.share) {
+      navigator.share({ title: "Brainrot Meter Results", url }).catch(() => {});
+      return;
+    }
+
     const afterCopy = () => {
       const text =
-        count < 6
-          ? `Sharing ${count} of 6 tests — finish the rest for your full score!`
+        count < 4
+          ? `Sharing ${count} of 4 tests — finish the rest for your full score!`
           : "Link copied!";
       setLabelText(text);
       setCopied(true);
@@ -96,23 +103,43 @@ function ShareFAB() {
       setTimeout(() => setLabelVisible(false), 2200);
       setTimeout(() => setCopied(false), 2500);
     };
-    navigator.clipboard.writeText(url).then(afterCopy).catch(afterCopy);
+
+    // Clipboard API (requires secure context)
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(afterCopy).catch(afterCopy);
+      return;
+    }
+
+    // Final fallback: execCommand (works in non-HTTPS contexts)
+    try {
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none;";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      afterCopy();
+    } catch {
+      afterCopy();
+    }
   }, []);
 
   if (!showFAB) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2" style={{ bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))" }}>
       <span
-        className={`text-xs bg-background border rounded px-2 py-1 shadow text-muted-foreground whitespace-nowrap transition-opacity duration-300 ${labelVisible ? "opacity-100" : "opacity-0"}`}
+        className={`text-xs bg-background border rounded px-2 py-1 shadow text-muted-foreground whitespace-nowrap transition-opacity duration-300 pointer-events-none ${labelVisible ? "opacity-100" : "opacity-0"}`}
       >
         {labelText}
       </span>
       <Button
         size="icon"
-        className="rounded-full shadow-lg"
+        className="rounded-full shadow-lg h-12 w-12"
         onClick={handleShare}
         aria-label="Share results"
+        style={{ touchAction: "manipulation" }}
       >
         {copied ? <Check className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
       </Button>

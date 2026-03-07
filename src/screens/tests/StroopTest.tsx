@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ReadySetGo } from "@/components/ReadySetGo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -65,6 +66,7 @@ export interface StroopStats {
 
 type Phase =
   | "instructions"
+  | "countdown"
   | "condition1"
   | "between-1-2"
   | "condition2"
@@ -253,13 +255,17 @@ export function StroopTest({ onComplete }: Props) {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => startCondition("condition1")}
+            onClick={() => setPhase("countdown")}
           >
             Begin
           </Button>
         </CardFooter>
       </Card>
     );
+  }
+
+  if (phase === "countdown") {
+    return <ReadySetGo onDone={() => startCondition("condition1")} />;
   }
 
   // ── Between condition 1 and 2 ─────────────────────────────────────────────

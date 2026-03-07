@@ -9,13 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ReadySetGo } from "@/components/ReadySetGo";
 
 const TOTAL_TRIALS = 30;
 const MIN_ISI_MS = 2000;
 const MAX_ISI_MS = 10000;
 const LAPSE_THRESHOLD_MS = 500;
 
-type Phase = "instructions" | "running" | "complete";
+type Phase = "instructions" | "countdown" | "running" | "complete";
 
 export interface PVTStats {
   medianRT: number;
@@ -173,12 +174,16 @@ export function PVTTest({ onComplete }: Props) {
           </p>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" size="lg" onClick={startTest}>
+          <Button className="w-full" size="lg" onClick={() => setPhase("countdown")}>
             Start Test
           </Button>
         </CardFooter>
       </Card>
     );
+  }
+
+  if (phase === "countdown") {
+    return <ReadySetGo onDone={startTest} />;
   }
 
   if (phase === "running") {
