@@ -67,13 +67,14 @@ export async function generateScoreImage(
 
   // App title with pill highlight
   const titleText = "BRAINROT METER";
-  ctx.font = `700 38px ${font}`;
+  const titleFontSize = 56;
+  ctx.font = `700 ${titleFontSize}px ${font}`;
   ctx.textAlign = "center";
   const titleWidth = ctx.measureText(titleText).width;
-  const titlePillPadX = 28;
-  const titlePillPadY = 16;
-  const titlePillH = 38 + titlePillPadY * 2;
-  const titlePillY = 68;
+  const titlePillPadX = 32;
+  const titlePillPadY = 18;
+  const titlePillH = titleFontSize + titlePillPadY * 2;
+  const titlePillY = 60;
   // Pill background
   ctx.fillStyle = "#3f3f46";
   roundedRect(ctx, size / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
@@ -86,8 +87,8 @@ export async function generateScoreImage(
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 148);
-  ctx.lineTo(size - pad, 148);
+  ctx.moveTo(pad, titlePillY + titlePillH + 18);
+  ctx.lineTo(size - pad, titlePillY + titlePillH + 18);
   ctx.stroke();
 
   // Score number
@@ -140,22 +141,38 @@ export async function generateScoreImage(
   ctx.lineTo(size - pad, 940);
   ctx.stroke();
 
-  // CTA — two-part text with URL highlighted
+  // CTA — two-part text with both parts highlighted
   const ctaPrefix = "Test your own attention span  →  ";
   const ctaUrl = "brainrot-meter.vercel.app";
   const ctaFontSize = 40;
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
-  const prefixW = ctx.measureText(ctaPrefix).width;
   ctx.font = `700 ${ctaFontSize}px ${font}`;
+  const prefixW = ctx.measureText(ctaPrefix).width;
   const urlW = ctx.measureText(ctaUrl).width;
-  const ctaStartX = size / 2 - (prefixW + urlW) / 2;
+  const totalCtaW = prefixW + urlW;
+  const ctaStartX = size / 2 - totalCtaW / 2;
   const ctaY = 1010;
+  const ctaPillPadX = 32;
+  const ctaPillPadY = 16;
+  const ctaPillH = ctaFontSize + ctaPillPadY * 2;
+  const ctaPillY = ctaY - ctaFontSize - ctaPillPadY + 6;
 
-  // URL pill background
-  const urlPillPadX = 20;
-  const urlPillPadY = 12;
+  // Full CTA pill background
+  ctx.fillStyle = "#27272a";
+  roundedRect(
+    ctx,
+    ctaStartX - ctaPillPadX,
+    ctaPillY,
+    totalCtaW + ctaPillPadX * 2,
+    ctaPillH,
+    ctaPillH / 2,
+  );
+  ctx.fill();
+
+  // URL accent pill (on top of full pill)
   const urlX = ctaStartX + prefixW;
-  ctx.fillStyle = "#18181b";
+  const urlPillPadX = 20;
+  const urlPillPadY = 10;
+  ctx.fillStyle = "#3f3f46";
   roundedRect(
     ctx,
     urlX - urlPillPadX,
@@ -166,13 +183,12 @@ export async function generateScoreImage(
   );
   ctx.fill();
 
-  ctx.fillStyle = "#71717a";
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
+  ctx.fillStyle = "#e4e4e7";
+  ctx.font = `700 ${ctaFontSize}px ${font}`;
   ctx.textAlign = "left";
   ctx.fillText(ctaPrefix, ctaStartX, ctaY);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = `700 ${ctaFontSize}px ${font}`;
   ctx.fillText(ctaUrl, urlX, ctaY);
   ctx.textAlign = "center";
 
