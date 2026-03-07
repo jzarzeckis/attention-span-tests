@@ -39,15 +39,9 @@ const RECT_BG: Record<Color, string> = {
   yellow: "bg-yellow-400",
 };
 
-const BTN_CLS: Record<Color, string> = {
-  red: "bg-red-500 hover:bg-red-600 text-white",
-  blue: "bg-blue-500 hover:bg-blue-600 text-white",
-  green: "bg-green-500 hover:bg-green-600 text-white",
-  yellow: "bg-yellow-400 hover:bg-yellow-500 text-black",
-};
-
 const IS_DEV = process.env.NODE_ENV !== "production";
 const TRIALS_PER_CONDITION = IS_DEV ? 1 : 20;
+const TRIALS_C3 = IS_DEV ? 1 : 40;
 const PRACTICE_TRIALS = IS_DEV ? 1 : 3;
 
 interface Stimulus {
@@ -161,7 +155,8 @@ export function StroopTest({ onComplete }: Props) {
       const stims =
         newPhase === "condition1" ? makeC1() :
         newPhase === "condition2" ? makeC2() :
-        makeC3(newPhase === "practice" ? PRACTICE_TRIALS : TRIALS_PER_CONDITION);
+        newPhase === "practice" ? makeC3(PRACTICE_TRIALS) :
+        makeC3(TRIALS_C3);
       setStimuli(stims);
       setTrialIdx(0);
       setFeedback(null);
@@ -337,7 +332,7 @@ export function StroopTest({ onComplete }: Props) {
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <p>
-            The real test is <strong>20 trials</strong> with no feedback.
+            The real test is <strong>40 trials</strong> with no feedback.
           </p>
           <p>
             Remember: tap the <strong>ink color</strong>, not the word.
@@ -421,9 +416,9 @@ export function StroopTest({ onComplete }: Props) {
           <Button
             key={color}
             size="lg"
+            variant="outline"
             disabled={!awaiting}
             onClick={() => handleAnswer(color)}
-            className={BTN_CLS[color]}
           >
             {LABEL[color]}
           </Button>
