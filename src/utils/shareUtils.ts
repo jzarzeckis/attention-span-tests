@@ -143,20 +143,37 @@ export async function generateScoreImage(
   // CTA — two-part text with URL highlighted
   const ctaPrefix = "Test your own attention span  →  ";
   const ctaUrl = "brainrot-meter.vercel.app";
-  ctx.font = `28px ${font}`;
+  const ctaFontSize = 40;
+  ctx.font = `400 ${ctaFontSize}px ${font}`;
   const prefixW = ctx.measureText(ctaPrefix).width;
-  ctx.font = `700 28px ${font}`;
+  ctx.font = `700 ${ctaFontSize}px ${font}`;
   const urlW = ctx.measureText(ctaUrl).width;
   const ctaStartX = size / 2 - (prefixW + urlW) / 2;
+  const ctaY = 1010;
+
+  // URL pill background
+  const urlPillPadX = 20;
+  const urlPillPadY = 12;
+  const urlX = ctaStartX + prefixW;
+  ctx.fillStyle = "#18181b";
+  roundedRect(
+    ctx,
+    urlX - urlPillPadX,
+    ctaY - ctaFontSize - urlPillPadY + 6,
+    urlW + urlPillPadX * 2,
+    ctaFontSize + urlPillPadY * 2,
+    (ctaFontSize + urlPillPadY * 2) / 2,
+  );
+  ctx.fill();
 
   ctx.fillStyle = "#71717a";
-  ctx.font = `28px ${font}`;
+  ctx.font = `400 ${ctaFontSize}px ${font}`;
   ctx.textAlign = "left";
-  ctx.fillText(ctaPrefix, ctaStartX, 1000);
+  ctx.fillText(ctaPrefix, ctaStartX, ctaY);
 
-  ctx.fillStyle = "#e4e4e7";
-  ctx.font = `700 28px ${font}`;
-  ctx.fillText(ctaUrl, ctaStartX + prefixW, 1000);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `700 ${ctaFontSize}px ${font}`;
+  ctx.fillText(ctaUrl, urlX, ctaY);
   ctx.textAlign = "center";
 
   return new Promise((resolve) => {
