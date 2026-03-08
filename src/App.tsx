@@ -123,10 +123,16 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
 
     const file = new File([blob], "brainrot-score.png", { type: "image/png" });
 
-    // Mobile: Web Share API with file support
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ title: "My Brainrot Score", files: [file] }).catch(() => {});
-      return;
+    // Mobile: Web Share API with file support (iOS and Android Chrome 86+)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "My Brainrot Score", files: [file] });
+        return;
+      } catch (err) {
+        // User cancelled — stop here
+        if (err instanceof Error && err.name === "AbortError") return;
+        // File sharing not supported by this browser — fall through to download
+      }
     }
 
     // Fallback: download the image so user can share manually
