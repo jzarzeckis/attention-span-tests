@@ -1,19 +1,8 @@
 export const config = { runtime: "edge" };
 
-const KEY = "leaderboard";
-const MAX_ENTRIES = 500;
+import { neon } from "@neondatabase/serverless";
 
-async function kvCommand(url: string, token: string, command: (string | number)[]): Promise<{ result: unknown; error?: string }> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-  });
-  return res.json() as Promise<{ result: unknown; error?: string }>;
-}
+const MAX_ENTRIES = 500;
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -25,19 +14,38 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
-
-  if (!kvUrl || !kvToken) {
-    return json({ error: "Leaderboard not configured" }, 503);
+async function getDb() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    return null;
   }
+  return neon(databaseUrl);
+}
 
+async function ensureTable(sql: ReturnType<typeof neon>) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `;
+}
+
+export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST" },
     });
   }
+
+  const sql = await getDb();
+  if (!sql) {
+    return json({ error: "Leaderboard not configured" }, 503);
+  }
+
+  await ensureTable(sql);
 
   if (req.method === "POST") {
     let body: { name?: unknown; score?: unknown };
@@ -60,43 +68,33 @@ export default async function handler(req: Request): Promise<Response> {
       return json({ error: "Invalid input" }, 400);
     }
 
-    const sanitizedName = name.trim().replace(/[|]/g, "").slice(0, 30);
-    const member = `${sanitizedName}|${Date.now()}`;
+    const sanitizedName = name.trim().slice(0, 30);
+    const roundedScore = Math.round(score);
 
-    // Add to sorted set
-    await kvCommand(kvUrl, kvToken, ["ZADD", KEY, Math.round(score), member]);
+    await sql`INSERT INTO leaderboard (name, score) VALUES (${sanitizedName}, ${roundedScore})`;
 
-    // Keep only top MAX_ENTRIES by removing lowest scores
-    const totalRes = await kvCommand(kvUrl, kvToken, ["ZCARD", KEY]);
-    const total = (totalRes.result as number) ?? 0;
-    if (total > MAX_ENTRIES) {
-      await kvCommand(kvUrl, kvToken, ["ZREMRANGEBYRANK", KEY, 0, total - MAX_ENTRIES - 1]);
-    }
+    // Keep only top MAX_ENTRIES by score (remove lowest scores when over limit)
+    await sql`
+      DELETE FROM leaderboard
+      WHERE id NOT IN (
+        SELECT id FROM leaderboard
+        ORDER BY score DESC, created_at ASC
+        LIMIT ${MAX_ENTRIES}
+      )
+    `;
 
     return json({ success: true });
   }
 
   if (req.method === "GET") {
-    // Get top 500 entries, highest score first, with scores
-    const rangeRes = await kvCommand(kvUrl, kvToken, [
-      "ZRANGE", KEY, "+inf", "-inf", "BYSCORE", "REV", "WITHSCORES", "LIMIT", "0", String(MAX_ENTRIES),
-    ]);
+    const rows = await sql`
+      SELECT name, score
+      FROM leaderboard
+      ORDER BY score DESC, created_at ASC
+      LIMIT ${MAX_ENTRIES}
+    `;
 
-    const raw = rangeRes.result as (string | number)[] | null;
-    if (!raw || raw.length === 0) {
-      return json([]);
-    }
-
-    // raw alternates: [member, score, member, score, ...]
-    const entries: { name: string; score: number }[] = [];
-    for (let i = 0; i < raw.length - 1; i += 2) {
-      const member = String(raw[i]);
-      const score = Number(raw[i + 1]);
-      const pipeIdx = member.lastIndexOf("|");
-      const name = pipeIdx >= 0 ? member.slice(0, pipeIdx) : member;
-      entries.push({ name, score });
-    }
-
+    const entries = rows.map((row) => ({ name: String(row.name), score: Number(row.score) }));
     return json(entries);
   }
 
