@@ -125,14 +125,14 @@ export async function generateScoreImage(
   ctx.fillStyle = barColor;
   ctx.font = `bold 52px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(badge, W / 2, 650);
+  ctx.fillText(badge, W / 2, 620);
 
   // Summary text
   ctx.fillStyle = "#a1a1aa";
   ctx.font = `32px ${font}`;
   const lines = wrapText(ctx, summary, inner);
   const lineH = 48;
-  let ty = 720;
+  let ty = 690;
   for (const line of lines) {
     ctx.fillText(line, W / 2, ty);
     ty += lineH;
@@ -147,7 +147,7 @@ export async function generateScoreImage(
   ];
 
   // Section header with side lines
-  const sectionHeaderY = 820;
+  const sectionHeaderY = 840;
   ctx.font = `600 24px ${font}`;
   ctx.textAlign = "center";
   const headerLabel = "TEST BREAKDOWN";
@@ -169,7 +169,7 @@ export async function generateScoreImage(
   // Individual test bars
   const testBarH = 12;
   const rowPitch = 60;
-  let rowY = 865;
+  let rowY = 885;
 
   for (const t of breakdownTests) {
     const testScore = t.score;
