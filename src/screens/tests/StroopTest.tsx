@@ -39,10 +39,9 @@ const RECT_BG: Record<Color, string> = {
   yellow: "bg-yellow-400",
 };
 
-const IS_DEV = process.env.NODE_ENV !== "production";
-const TRIALS_PER_CONDITION = IS_DEV ? 1 : 20;
-const TRIALS_C3 = IS_DEV ? 1 : 40;
-const PRACTICE_TRIALS = IS_DEV ? 1 : 3;
+const TRIALS_PER_CONDITION = 20;
+const TRIALS_C3 = 40;
+const PRACTICE_TRIALS = 3;
 
 interface Stimulus {
   word: Color | null;     // null = show rectangle (condition 2)
