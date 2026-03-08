@@ -57,7 +57,7 @@ export async function generateScoreImage(
   testScores?: { sart: number | null; stroop: number | null; pvt: number | null; gonogo: number | null },
 ): Promise<Blob | null> {
   const W = 1080;
-  const H = 1500;
+  const H = 1300;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -147,7 +147,7 @@ export async function generateScoreImage(
   ];
 
   // Section header with side lines
-  const sectionHeaderY = 900;
+  const sectionHeaderY = 820;
   ctx.font = `600 24px ${font}`;
   ctx.textAlign = "center";
   const headerLabel = "TEST BREAKDOWN";
@@ -169,7 +169,7 @@ export async function generateScoreImage(
   // Individual test bars
   const testBarH = 12;
   const rowPitch = 60;
-  let rowY = 945;
+  let rowY = 865;
 
   for (const t of breakdownTests) {
     const testScore = t.score;
@@ -210,8 +210,8 @@ export async function generateScoreImage(
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 1210);
-  ctx.lineTo(W - pad, 1210);
+  ctx.moveTo(pad, 1095);
+  ctx.lineTo(W - pad, 1095);
   ctx.stroke();
 
   // CTA line 1 — gradient "test your own attention span"
@@ -222,7 +222,7 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
   ctx.fillStyle = ctaGrad;
-  ctx.fillText("test your own attention span", W / 2, 1320);
+  ctx.fillText("test your own attention span", W / 2, 1185);
 
   // CTA line 2 — URL in gradient pill
   const ctaUrl = "brainrot-meter.vercel.app";
@@ -232,7 +232,7 @@ export async function generateScoreImage(
   const uPillH = 72;
   const uPillW = ctaUrlW + uPadX * 2;
   const uPillX = W / 2 - uPillW / 2;
-  const uPillY = 1370;
+  const uPillY = 1225;
   const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
   pillGrad.addColorStop(0, "#dc2626");
   pillGrad.addColorStop(0.5, "#1e1b4b");
