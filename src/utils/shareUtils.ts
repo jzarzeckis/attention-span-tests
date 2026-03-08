@@ -57,7 +57,7 @@ export async function generateScoreImage(
   testScores?: { sart: number | null; stroop: number | null; pvt: number | null; gonogo: number | null },
 ): Promise<Blob | null> {
   const W = 1080;
-  const H = 1500;
+  const H = 1300;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -80,7 +80,7 @@ export async function generateScoreImage(
   const titlePillPadX = 28;
   const titlePillPadY = 16;
   const titlePillH = 52 + titlePillPadY * 2;
-  const titlePillY = 60;
+  const titlePillY = 20;
   ctx.fillStyle = "#3f3f46";
   roundedRect(ctx, W / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
   ctx.fill();
@@ -92,23 +92,23 @@ export async function generateScoreImage(
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 148);
-  ctx.lineTo(W - pad, 148);
+  ctx.moveTo(pad, 108);
+  ctx.lineTo(W - pad, 108);
   ctx.stroke();
 
   // Score number
   ctx.fillStyle = "#fafafa";
   ctx.font = `bold 240px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(String(score), W / 2, 430);
+  ctx.fillText(String(score), W / 2, 310);
 
   // "/ 100"
   ctx.fillStyle = "#71717a";
   ctx.font = `600 52px ${font}`;
-  ctx.fillText("/ 100", W / 2, 500);
+  ctx.fillText("/ 100", W / 2, 380);
 
   // Progress bar background
-  const barY = 540;
+  const barY = 420;
   const barH = 30;
   ctx.fillStyle = "#27272a";
   roundedRect(ctx, pad, barY, inner, barH, barH / 2);
@@ -125,14 +125,14 @@ export async function generateScoreImage(
   ctx.fillStyle = barColor;
   ctx.font = `bold 52px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(badge, W / 2, 650);
+  ctx.fillText(badge, W / 2, 500);
 
   // Summary text
   ctx.fillStyle = "#a1a1aa";
   ctx.font = `32px ${font}`;
   const lines = wrapText(ctx, summary, inner);
   const lineH = 48;
-  let ty = 720;
+  let ty = 570;
   for (const line of lines) {
     ctx.fillText(line, W / 2, ty);
     ty += lineH;
@@ -147,7 +147,7 @@ export async function generateScoreImage(
   ];
 
   // Section header with side lines
-  const sectionHeaderY = 900;
+  const sectionHeaderY = 800;
   ctx.font = `600 24px ${font}`;
   ctx.textAlign = "center";
   const headerLabel = "TEST BREAKDOWN";
@@ -169,7 +169,7 @@ export async function generateScoreImage(
   // Individual test bars
   const testBarH = 12;
   const rowPitch = 60;
-  let rowY = 945;
+  let rowY = 845;
 
   for (const t of breakdownTests) {
     const testScore = t.score;
@@ -210,8 +210,8 @@ export async function generateScoreImage(
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 1210);
-  ctx.lineTo(W - pad, 1210);
+  ctx.moveTo(pad, 1055);
+  ctx.lineTo(W - pad, 1055);
   ctx.stroke();
 
   // CTA line 1 — gradient "test your own attention span"
@@ -222,7 +222,7 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
   ctx.fillStyle = ctaGrad;
-  ctx.fillText("test your own attention span", W / 2, 1320);
+  ctx.fillText("test your own attention span", W / 2, 1115);
 
   // CTA line 2 — URL in gradient pill
   const ctaUrl = "brainrot-meter.vercel.app";
@@ -232,7 +232,7 @@ export async function generateScoreImage(
   const uPillH = 72;
   const uPillW = ctaUrlW + uPadX * 2;
   const uPillX = W / 2 - uPillW / 2;
-  const uPillY = 1370;
+  const uPillY = 1155;
   const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
   pillGrad.addColorStop(0, "#dc2626");
   pillGrad.addColorStop(0.5, "#1e1b4b");
