@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { neon } from "@neondatabase/serverless";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
 const MAX_ENTRIES = 500;
 
@@ -22,7 +22,7 @@ async function getDb() {
   return neon(databaseUrl);
 }
 
-async function ensureTable(sql: ReturnType<typeof neon>) {
+async function ensureTable(sql: NeonQueryFunction<false, false>) {
   await sql`
     CREATE TABLE IF NOT EXISTS leaderboard (
       id SERIAL PRIMARY KEY,
