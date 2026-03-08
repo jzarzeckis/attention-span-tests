@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "[ \"$VERCEL_ENV\" = \"production\" ] && NODE_ENV=production bun run build || NODE_ENV=development bun run build",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/share", "destination": "/api/share" },
