@@ -222,19 +222,14 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0, "#ef4444");
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
-  // Outline: inverted colors of fill gradient, reversed direction
-  const ctaOutlineGrad = ctx.createLinearGradient(W / 2 + 320, 0, W / 2 - 320, 0);
-  ctaOutlineGrad.addColorStop(0, "#10bbbb"); // inverted #ef4444
-  ctaOutlineGrad.addColorStop(0.5, "#e1e4b4"); // inverted #1e1b4b
-  ctaOutlineGrad.addColorStop(1, "#c47d09"); // inverted #3b82f6
   ctx.save();
-  ctx.strokeStyle = ctaOutlineGrad;
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = "round";
-  ctx.strokeText("test your own attention span", W / 2, 1115);
-  ctx.restore();
+  ctx.shadowColor = "rgba(180, 180, 180, 0.55)";
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1115);
+  ctx.restore();
 
   // CTA line 2 — URL in gradient pill
   const ctaUrl = "brainrot-meter.vercel.app";
@@ -252,18 +247,7 @@ export async function generateScoreImage(
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
-  // Outline: inverted colors of pill gradient, reversed direction
-  const urlOutlineGrad = ctx.createLinearGradient(uPillX + uPillW, 0, uPillX, 0);
-  urlOutlineGrad.addColorStop(0, "#23d9d9"); // inverted #dc2626
-  urlOutlineGrad.addColorStop(0.5, "#e1e4b4"); // inverted #1e1b4b
-  urlOutlineGrad.addColorStop(1, "#c47d09"); // inverted #3b82f6
   ctx.textBaseline = "middle";
-  ctx.save();
-  ctx.strokeStyle = urlOutlineGrad;
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = "round";
-  ctx.strokeText(ctaUrl, W / 2, uPillY + uPillH / 2);
-  ctx.restore();
   ctx.fillStyle = "#ffffff";
   ctx.fillText(ctaUrl, W / 2, uPillY + uPillH / 2);
   ctx.textBaseline = "alphabetic";
