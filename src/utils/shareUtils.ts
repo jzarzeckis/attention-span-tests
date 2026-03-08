@@ -217,10 +217,9 @@ export async function generateScoreImage(
   // CTA line 1 — gradient "test your own attention span"
   ctx.font = `700 54px ${font}`;
   ctx.textAlign = "center";
-  const ctaGrad = ctx.createLinearGradient(W / 2 - 300, 0, W / 2 + 300, 0);
-  ctaGrad.addColorStop(0, "#a78bfa");
-  ctaGrad.addColorStop(0.5, "#f472b6");
-  ctaGrad.addColorStop(1, "#fb923c");
+  const ctaGrad = ctx.createLinearGradient(W / 2 - 320, 0, W / 2 + 320, 0);
+  ctaGrad.addColorStop(0, "#ef4444");
+  ctaGrad.addColorStop(1, "#1e1b4b");
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1320);
 
@@ -234,8 +233,8 @@ export async function generateScoreImage(
   const uPillX = W / 2 - uPillW / 2;
   const uPillY = 1370;
   const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
-  pillGrad.addColorStop(0, "#7c3aed");
-  pillGrad.addColorStop(1, "#db2777");
+  pillGrad.addColorStop(0, "#dc2626");
+  pillGrad.addColorStop(1, "#1e1b4b");
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
