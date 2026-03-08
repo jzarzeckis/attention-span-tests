@@ -400,7 +400,7 @@ export function StroopTest({ onComplete }: Props) {
         {stim?.word !== null && stim?.word !== undefined ? (
           <span
             className={`text-5xl font-bold uppercase ${
-              stim.inkColor ? TEXT_CLS[stim.inkColor] : "text-foreground"
+              stim.inkColor ? TEXT_CLS[stim.inkColor] : stim.word ? TEXT_CLS[stim.word] : "text-foreground"
             }`}
           >
             {LABEL[stim.word]}
