@@ -670,8 +670,13 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
           </CardContent>
 
           <CardFooter className="flex-col gap-3">
-            {composite !== null && !isShared && (
+            {composite !== null && !isShared && testsCompleted === 4 && (
               <LeaderboardSubmit score={composite} />
+            )}
+            {composite !== null && !isShared && testsCompleted < 4 && (
+              <p className="text-xs text-muted-foreground text-center">
+                Complete all 4 tests (no skipping) to submit your score to the leaderboard.
+              </p>
             )}
             <Button variant="outline" className="w-full" size="sm" onClick={onViewScoreboard}>
               View Scoreboard
