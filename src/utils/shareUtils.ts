@@ -219,7 +219,8 @@ export async function generateScoreImage(
   ctx.textAlign = "center";
   const ctaGrad = ctx.createLinearGradient(W / 2 - 320, 0, W / 2 + 320, 0);
   ctaGrad.addColorStop(0, "#ef4444");
-  ctaGrad.addColorStop(1, "#1e1b4b");
+  ctaGrad.addColorStop(0.5, "#3b82f6");
+  ctaGrad.addColorStop(1, "#22c55e");
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1320);
 
@@ -234,7 +235,8 @@ export async function generateScoreImage(
   const uPillY = 1370;
   const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
   pillGrad.addColorStop(0, "#dc2626");
-  pillGrad.addColorStop(1, "#1e1b4b");
+  pillGrad.addColorStop(0.5, "#3b82f6");
+  pillGrad.addColorStop(1, "#22c55e");
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
