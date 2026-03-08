@@ -36,6 +36,11 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+function sampleInvertedColor(ctx: CanvasRenderingContext2D, x: number, y: number): string {
+  const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+  return `rgb(${255 - d[0]},${255 - d[1]},${255 - d[2]})`;
+}
+
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -221,6 +226,15 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0, "#ef4444");
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
+  // Sample the pixel just to the left of the text and apply inverted outline
+  const ctaTextW = ctx.measureText("test your own attention span").width;
+  const ctaOutlineColor = sampleInvertedColor(ctx, W / 2 - ctaTextW / 2 - 2, 1115 - 30);
+  ctx.save();
+  ctx.strokeStyle = ctaOutlineColor;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = "round";
+  ctx.strokeText("test your own attention span", W / 2, 1115);
+  ctx.restore();
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1115);
 
@@ -240,8 +254,16 @@ export async function generateScoreImage(
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
-  ctx.fillStyle = "#ffffff";
+  // Sample pixel just inside the left edge of the pill for inverted outline
+  const urlOutlineColor = sampleInvertedColor(ctx, uPillX + 6, uPillY + uPillH / 2);
   ctx.textBaseline = "middle";
+  ctx.save();
+  ctx.strokeStyle = urlOutlineColor;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = "round";
+  ctx.strokeText(ctaUrl, W / 2, uPillY + uPillH / 2);
+  ctx.restore();
+  ctx.fillStyle = "#ffffff";
   ctx.fillText(ctaUrl, W / 2, uPillY + uPillH / 2);
   ctx.textBaseline = "alphabetic";
 
