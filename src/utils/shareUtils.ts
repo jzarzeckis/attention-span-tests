@@ -54,21 +54,23 @@ export async function generateScoreImage(
   score: number,
   badge: string,
   summary: string,
+  testScores?: { sart: number | null; stroop: number | null; pvt: number | null; gonogo: number | null },
 ): Promise<Blob | null> {
-  const size = 1080;
+  const W = 1080;
+  const H = 1500;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
   const pad = 80;
-  const inner = size - pad * 2;
+  const inner = W - pad * 2;
   const font = "system-ui, -apple-system, Arial, sans-serif";
 
   // Background
   ctx.fillStyle = "#09090b";
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, W, H);
 
   // App title with pill highlight
   const titleText = "BRAINROToMETER";
@@ -79,33 +81,31 @@ export async function generateScoreImage(
   const titlePillPadY = 16;
   const titlePillH = 52 + titlePillPadY * 2;
   const titlePillY = 60;
-  // Pill background
   ctx.fillStyle = "#3f3f46";
-  roundedRect(ctx, size / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
+  roundedRect(ctx, W / 2 - titleWidth / 2 - titlePillPadX, titlePillY, titleWidth + titlePillPadX * 2, titlePillH, titlePillH / 2);
   ctx.fill();
-  // Title text
   ctx.fillStyle = "#fafafa";
   ctx.font = `700 52px ${font}`;
-  ctx.fillText(titleText, size / 2, titlePillY + titlePillH - titlePillPadY - 4);
+  ctx.fillText(titleText, W / 2, titlePillY + titlePillH - titlePillPadY - 4);
 
   // Top separator
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(pad, 148);
-  ctx.lineTo(size - pad, 148);
+  ctx.lineTo(W - pad, 148);
   ctx.stroke();
 
   // Score number
   ctx.fillStyle = "#fafafa";
   ctx.font = `bold 240px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(String(score), size / 2, 430);
+  ctx.fillText(String(score), W / 2, 430);
 
   // "/ 100"
   ctx.fillStyle = "#71717a";
   ctx.font = `600 52px ${font}`;
-  ctx.fillText("/ 100", size / 2, 500);
+  ctx.fillText("/ 100", W / 2, 500);
 
   // Progress bar background
   const barY = 540;
@@ -116,7 +116,7 @@ export async function generateScoreImage(
 
   // Progress bar fill
   const barColor = score >= 80 ? "#22c55e" : score >= 60 ? "#60a5fa" : "#ef4444";
-  const fillW = Math.max(barH, inner * (score / 100)); // min width = radius so arc works
+  const fillW = Math.max(barH, inner * (score / 100));
   ctx.fillStyle = barColor;
   roundedRect(ctx, pad, barY, fillW, barH, barH / 2);
   ctx.fill();
@@ -125,7 +125,7 @@ export async function generateScoreImage(
   ctx.fillStyle = barColor;
   ctx.font = `bold 52px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(badge, size / 2, 650);
+  ctx.fillText(badge, W / 2, 650);
 
   // Summary text
   ctx.fillStyle = "#a1a1aa";
@@ -134,53 +134,116 @@ export async function generateScoreImage(
   const lineH = 48;
   let ty = 720;
   for (const line of lines) {
-    ctx.fillText(line, size / 2, ty);
+    ctx.fillText(line, W / 2, ty);
     ty += lineH;
+  }
+
+  // Test breakdown section
+  const breakdownTests = [
+    { label: "Sustained Attention (SART)", score: testScores?.sart ?? null },
+    { label: "Stroop Color-Word", score: testScores?.stroop ?? null },
+    { label: "Psychomotor Vigilance (PVT)", score: testScores?.pvt ?? null },
+    { label: "Go / No-Go", score: testScores?.gonogo ?? null },
+  ];
+
+  // Section header with side lines
+  const sectionHeaderY = 900;
+  ctx.font = `600 24px ${font}`;
+  ctx.textAlign = "center";
+  const headerLabel = "TEST BREAKDOWN";
+  const headerLabelW = ctx.measureText(headerLabel).width;
+  const lineGap = 24;
+  ctx.strokeStyle = "#27272a";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, sectionHeaderY - 8);
+  ctx.lineTo(W / 2 - headerLabelW / 2 - lineGap, sectionHeaderY - 8);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(W / 2 + headerLabelW / 2 + lineGap, sectionHeaderY - 8);
+  ctx.lineTo(W - pad, sectionHeaderY - 8);
+  ctx.stroke();
+  ctx.fillStyle = "#52525b";
+  ctx.fillText(headerLabel, W / 2, sectionHeaderY);
+
+  // Individual test bars
+  const testBarH = 12;
+  const rowPitch = 60;
+  let rowY = 945;
+
+  for (const t of breakdownTests) {
+    const testScore = t.score;
+    const testBarColor = testScore === null
+      ? "#3f3f46"
+      : testScore >= 80 ? "#22c55e" : testScore >= 60 ? "#60a5fa" : "#ef4444";
+    const scoreLabel = testScore === null ? "—" : `${Math.round(testScore)}%`;
+
+    // Label (left)
+    ctx.fillStyle = "#a1a1aa";
+    ctx.font = `500 26px ${font}`;
+    ctx.textAlign = "left";
+    ctx.fillText(t.label, pad, rowY);
+
+    // Score (right)
+    ctx.fillStyle = testScore === null ? "#52525b" : "#fafafa";
+    ctx.font = `700 26px ${font}`;
+    ctx.textAlign = "right";
+    ctx.fillText(scoreLabel, W - pad, rowY);
+
+    // Bar track
+    ctx.fillStyle = "#27272a";
+    roundedRect(ctx, pad, rowY + 12, inner, testBarH, testBarH / 2);
+    ctx.fill();
+
+    // Bar fill
+    if (testScore !== null) {
+      const tFillW = Math.max(testBarH, inner * (testScore / 100));
+      ctx.fillStyle = testBarColor;
+      roundedRect(ctx, pad, rowY + 12, tFillW, testBarH, testBarH / 2);
+      ctx.fill();
+    }
+
+    rowY += rowPitch;
   }
 
   // Bottom separator
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 940);
-  ctx.lineTo(size - pad, 940);
+  ctx.moveTo(pad, 1210);
+  ctx.lineTo(W - pad, 1210);
   ctx.stroke();
 
-  // CTA — two-part text with URL highlighted
-  const ctaPrefix = "Test your own attention span  →  ";
-  const ctaUrl = "brainrot-meter.vercel.app";
-  const ctaFontSize = 40;
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
-  const prefixW = ctx.measureText(ctaPrefix).width;
-  ctx.font = `700 ${ctaFontSize}px ${font}`;
-  const urlW = ctx.measureText(ctaUrl).width;
-  const ctaStartX = size / 2 - (prefixW + urlW) / 2;
-  const ctaY = 1010;
-
-  // URL pill background
-  const urlPillPadX = 20;
-  const urlPillPadY = 12;
-  const urlX = ctaStartX + prefixW;
-  ctx.fillStyle = "#18181b";
-  roundedRect(
-    ctx,
-    urlX - urlPillPadX,
-    ctaY - ctaFontSize - urlPillPadY + 6,
-    urlW + urlPillPadX * 2,
-    ctaFontSize + urlPillPadY * 2,
-    (ctaFontSize + urlPillPadY * 2) / 2,
-  );
-  ctx.fill();
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
-  ctx.textAlign = "left";
-  ctx.fillText(ctaPrefix, ctaStartX, ctaY);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `700 ${ctaFontSize}px ${font}`;
-  ctx.fillText(ctaUrl, urlX, ctaY);
+  // CTA line 1 — gradient "test your own attention span"
+  ctx.font = `700 54px ${font}`;
   ctx.textAlign = "center";
+  const ctaGrad = ctx.createLinearGradient(W / 2 - 320, 0, W / 2 + 320, 0);
+  ctaGrad.addColorStop(0, "#ef4444");
+  ctaGrad.addColorStop(0.5, "#1e1b4b");
+  ctaGrad.addColorStop(1, "#3b82f6");
+  ctx.fillStyle = ctaGrad;
+  ctx.fillText("test your own attention span", W / 2, 1320);
+
+  // CTA line 2 — URL in gradient pill
+  const ctaUrl = "brainrot-meter.vercel.app";
+  ctx.font = `700 40px ${font}`;
+  const ctaUrlW = ctx.measureText(ctaUrl).width;
+  const uPadX = 40;
+  const uPillH = 72;
+  const uPillW = ctaUrlW + uPadX * 2;
+  const uPillX = W / 2 - uPillW / 2;
+  const uPillY = 1370;
+  const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
+  pillGrad.addColorStop(0, "#dc2626");
+  pillGrad.addColorStop(0.5, "#1e1b4b");
+  pillGrad.addColorStop(1, "#3b82f6");
+  ctx.fillStyle = pillGrad;
+  roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
+  ctx.fillText(ctaUrl, W / 2, uPillY + uPillH / 2);
+  ctx.textBaseline = "alphabetic";
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");
