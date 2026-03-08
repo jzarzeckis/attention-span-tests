@@ -223,7 +223,7 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
   ctx.save();
-  ctx.shadowColor = "rgba(180, 180, 180, 0.55)";
+  ctx.shadowColor = "rgba(147, 210, 235, 0.65)";
   ctx.shadowBlur = 8;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 2;
