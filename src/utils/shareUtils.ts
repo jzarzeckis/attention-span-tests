@@ -168,7 +168,7 @@ export async function generateScoreImage(
 
   // Individual test bars
   const testBarH = 12;
-  const rowPitch = 95;
+  const rowPitch = 60;
   let rowY = 945;
 
   for (const t of breakdownTests) {
@@ -210,45 +210,39 @@ export async function generateScoreImage(
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 1340);
-  ctx.lineTo(W - pad, 1340);
+  ctx.moveTo(pad, 1210);
+  ctx.lineTo(W - pad, 1210);
   ctx.stroke();
 
-  // CTA — two-part text with URL highlighted
-  const ctaPrefix = "Test your own attention span  →  ";
-  const ctaUrl = "brainrot-meter.vercel.app";
-  const ctaFontSize = 40;
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
-  const prefixW = ctx.measureText(ctaPrefix).width;
-  ctx.font = `700 ${ctaFontSize}px ${font}`;
-  const urlW = ctx.measureText(ctaUrl).width;
-  const ctaStartX = W / 2 - (prefixW + urlW) / 2;
-  const ctaY = 1430;
-
-  // URL pill background
-  const urlPillPadX = 20;
-  const urlPillPadY = 12;
-  const urlX = ctaStartX + prefixW;
-  ctx.fillStyle = "#18181b";
-  roundedRect(
-    ctx,
-    urlX - urlPillPadX,
-    ctaY - ctaFontSize - urlPillPadY + 6,
-    urlW + urlPillPadX * 2,
-    ctaFontSize + urlPillPadY * 2,
-    (ctaFontSize + urlPillPadY * 2) / 2,
-  );
-  ctx.fill();
-
-  ctx.fillStyle = "#e4e4e7";
-  ctx.font = `400 ${ctaFontSize}px ${font}`;
-  ctx.textAlign = "left";
-  ctx.fillText(ctaPrefix, ctaStartX, ctaY);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `700 ${ctaFontSize}px ${font}`;
-  ctx.fillText(ctaUrl, urlX, ctaY);
+  // CTA line 1 — gradient "test your own attention span"
+  ctx.font = `700 54px ${font}`;
   ctx.textAlign = "center";
+  const ctaGrad = ctx.createLinearGradient(W / 2 - 300, 0, W / 2 + 300, 0);
+  ctaGrad.addColorStop(0, "#a78bfa");
+  ctaGrad.addColorStop(0.5, "#f472b6");
+  ctaGrad.addColorStop(1, "#fb923c");
+  ctx.fillStyle = ctaGrad;
+  ctx.fillText("test your own attention span", W / 2, 1320);
+
+  // CTA line 2 — URL in gradient pill
+  const ctaUrl = "brainrot-meter.vercel.app";
+  ctx.font = `700 40px ${font}`;
+  const ctaUrlW = ctx.measureText(ctaUrl).width;
+  const uPadX = 40;
+  const uPillH = 72;
+  const uPillW = ctaUrlW + uPadX * 2;
+  const uPillX = W / 2 - uPillW / 2;
+  const uPillY = 1370;
+  const pillGrad = ctx.createLinearGradient(uPillX, 0, uPillX + uPillW, 0);
+  pillGrad.addColorStop(0, "#7c3aed");
+  pillGrad.addColorStop(1, "#db2777");
+  ctx.fillStyle = pillGrad;
+  roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
+  ctx.fillText(ctaUrl, W / 2, uPillY + uPillH / 2);
+  ctx.textBaseline = "alphabetic";
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");
