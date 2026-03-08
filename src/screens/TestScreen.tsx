@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -42,6 +42,7 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   const totalTests = TEST_LIST.length;
   const progressPercent = (testIndex / totalTests) * 100;
   const isLastTest = testIndex === totalTests - 1;
+  const [showAssistance, setShowAssistance] = useState(false);
 
   // Prevent double-advancing (skip + test completion racing)
   const doneRef = useRef(false);
@@ -107,6 +108,29 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
           </button>
         </div>
       </div>
+
+      {/* Assistance Button */}
+      <button
+        onClick={() => setShowAssistance((v) => !v)}
+        className="fixed bottom-5 right-5 z-40 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        aria-label="Toggle assistance"
+      >
+        {showAssistance ? "Hide Assistance" : "🏄 Assistance"}
+      </button>
+
+      {/* Subway Surfers Assistance Overlay */}
+      {showAssistance && (
+        <div className="fixed bottom-20 right-5 z-40 overflow-hidden rounded-2xl shadow-2xl border border-border bg-black"
+          style={{ width: 200, height: 356 }}>
+          <iframe
+            src="https://www.youtube.com/embed/xm3YgoEiEDc?autoplay=1&mute=0&loop=1&playlist=xm3YgoEiEDc&controls=0&modestbranding=1"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            className="h-full w-full"
+            title="Subway Surfers Gameplay"
+          />
+        </div>
+      )}
     </div>
   );
 }
