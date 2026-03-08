@@ -10,7 +10,74 @@ import type { SARTStats, StroopStats, PVTStats, GoNoGoStats, SelfReportData, Ski
 
 interface ResultsScreenProps {
   onRestart: () => void;
+  onViewScoreboard: () => void;
   isShared?: boolean;
+}
+
+function LeaderboardSubmit({ score }: { score: number }) {
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setStatus("submitting");
+    try {
+      const res = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed, score }),
+      });
+      if (res.ok) {
+        setStatus("success");
+      } else {
+        const data = await res.json() as { error?: string };
+        setErrorMsg(data.error ?? "Submission failed");
+        setStatus("error");
+      }
+    } catch {
+      setErrorMsg("Network error");
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="text-center space-y-1 py-2">
+        <p className="text-sm font-medium text-green-600 dark:text-green-400">Score submitted!</p>
+        <p className="text-xs text-muted-foreground">You're on the scoreboard.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Submit to Scoreboard</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Your name (max 30 chars)"
+          maxLength={30}
+          value={name}
+          onChange={(e) => { setName(e.target.value); setStatus("idle"); }}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+          disabled={status === "submitting"}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={!name.trim() || status === "submitting"}
+          className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors shrink-0"
+        >
+          {status === "submitting" ? "..." : "Submit"}
+        </button>
+      </div>
+      {status === "error" && (
+        <p className="text-xs text-destructive">{errorMsg}</p>
+      )}
+    </div>
+  );
 }
 
 
@@ -521,7 +588,7 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
   );
 }
 
-export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProps) {
+export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }: ResultsScreenProps) {
   const scores = calculateScores();
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
@@ -603,6 +670,12 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
           </CardContent>
 
           <CardFooter className="flex-col gap-3">
+            {composite !== null && !isShared && (
+              <LeaderboardSubmit score={composite} />
+            )}
+            <Button variant="outline" className="w-full" size="sm" onClick={onViewScoreboard}>
+              View Scoreboard
+            </Button>
             <Button className="w-full" size="lg" onClick={onRestart}>
               Take Test Again
             </Button>
