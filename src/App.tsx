@@ -7,6 +7,7 @@ import { LandingScreen } from "@/screens/LandingScreen";
 import { QuestionnaireScreen } from "@/screens/QuestionnaireScreen";
 import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen, calculateScores, compositeScore, getRank } from "@/screens/ResultsScreen";
+import { ScoreboardScreen } from "@/screens/ScoreboardScreen";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -259,6 +260,9 @@ function AppInner() {
     setScreen({ type: "landing" });
   };
 
+  const handleViewScoreboard = () => setScreen({ type: "scoreboard" });
+  const handleBackFromScoreboard = () => setScreen({ type: "results" });
+
   return (
     <>
       {screen.type === "landing" && (
@@ -276,7 +280,10 @@ function AppInner() {
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
       )}
       {screen.type === "results" && (
-        <ResultsScreen onRestart={handleRestart} isShared={!!screen.isShared} />
+        <ResultsScreen onRestart={handleRestart} onViewScoreboard={handleViewScoreboard} isShared={!!screen.isShared} />
+      )}
+      {screen.type === "scoreboard" && (
+        <ScoreboardScreen onBack={handleBackFromScoreboard} />
       )}
       <ThemePicker />
       <ShareFAB subtle={screen.type === "test"} />
