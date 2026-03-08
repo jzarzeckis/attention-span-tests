@@ -100,15 +100,15 @@ export async function generateScoreImage(
   ctx.fillStyle = "#fafafa";
   ctx.font = `bold 240px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(String(score), W / 2, 430);
+  ctx.fillText(String(score), W / 2, 350);
 
   // "/ 100"
   ctx.fillStyle = "#71717a";
   ctx.font = `600 52px ${font}`;
-  ctx.fillText("/ 100", W / 2, 500);
+  ctx.fillText("/ 100", W / 2, 420);
 
   // Progress bar background
-  const barY = 540;
+  const barY = 460;
   const barH = 30;
   ctx.fillStyle = "#27272a";
   roundedRect(ctx, pad, barY, inner, barH, barH / 2);
@@ -125,14 +125,14 @@ export async function generateScoreImage(
   ctx.fillStyle = barColor;
   ctx.font = `bold 52px ${font}`;
   ctx.textAlign = "center";
-  ctx.fillText(badge, W / 2, 620);
+  ctx.fillText(badge, W / 2, 540);
 
   // Summary text
   ctx.fillStyle = "#a1a1aa";
   ctx.font = `32px ${font}`;
   const lines = wrapText(ctx, summary, inner);
   const lineH = 48;
-  let ty = 690;
+  let ty = 610;
   for (const line of lines) {
     ctx.fillText(line, W / 2, ty);
     ty += lineH;
