@@ -36,6 +36,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -219,7 +220,6 @@ export async function generateScoreImage(
   ctx.textAlign = "center";
   const ctaGrad = ctx.createLinearGradient(W / 2 - 320, 0, W / 2 + 320, 0);
   ctaGrad.addColorStop(0, "#ef4444");
-  ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1115);
@@ -240,8 +240,8 @@ export async function generateScoreImage(
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
-  ctx.fillStyle = "#ffffff";
   ctx.textBaseline = "middle";
+  ctx.fillStyle = "#ffffff";
   ctx.fillText(ctaUrl, W / 2, uPillY + uPillH / 2);
   ctx.textBaseline = "alphabetic";
 
