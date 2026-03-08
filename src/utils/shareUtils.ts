@@ -36,10 +36,6 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-function sampleInvertedColor(ctx: CanvasRenderingContext2D, x: number, y: number): string {
-  const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-  return `rgb(${255 - d[0]},${255 - d[1]},${255 - d[2]})`;
-}
 
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -226,11 +222,13 @@ export async function generateScoreImage(
   ctaGrad.addColorStop(0, "#ef4444");
   ctaGrad.addColorStop(0.5, "#1e1b4b");
   ctaGrad.addColorStop(1, "#3b82f6");
-  // Sample the pixel just to the left of the text and apply inverted outline
-  const ctaTextW = ctx.measureText("test your own attention span").width;
-  const ctaOutlineColor = sampleInvertedColor(ctx, W / 2 - ctaTextW / 2 - 2, 1115 - 30);
+  // Outline: inverted colors of fill gradient, reversed direction
+  const ctaOutlineGrad = ctx.createLinearGradient(W / 2 + 320, 0, W / 2 - 320, 0);
+  ctaOutlineGrad.addColorStop(0, "#10bbbb"); // inverted #ef4444
+  ctaOutlineGrad.addColorStop(0.5, "#e1e4b4"); // inverted #1e1b4b
+  ctaOutlineGrad.addColorStop(1, "#c47d09"); // inverted #3b82f6
   ctx.save();
-  ctx.strokeStyle = ctaOutlineColor;
+  ctx.strokeStyle = ctaOutlineGrad;
   ctx.lineWidth = 1.5;
   ctx.lineJoin = "round";
   ctx.strokeText("test your own attention span", W / 2, 1115);
@@ -254,11 +252,14 @@ export async function generateScoreImage(
   ctx.fillStyle = pillGrad;
   roundedRect(ctx, uPillX, uPillY, uPillW, uPillH, uPillH / 2);
   ctx.fill();
-  // Sample pixel just inside the left edge of the pill for inverted outline
-  const urlOutlineColor = sampleInvertedColor(ctx, uPillX + 6, uPillY + uPillH / 2);
+  // Outline: inverted colors of pill gradient, reversed direction
+  const urlOutlineGrad = ctx.createLinearGradient(uPillX + uPillW, 0, uPillX, 0);
+  urlOutlineGrad.addColorStop(0, "#23d9d9"); // inverted #dc2626
+  urlOutlineGrad.addColorStop(0.5, "#e1e4b4"); // inverted #1e1b4b
+  urlOutlineGrad.addColorStop(1, "#c47d09"); // inverted #3b82f6
   ctx.textBaseline = "middle";
   ctx.save();
-  ctx.strokeStyle = urlOutlineColor;
+  ctx.strokeStyle = urlOutlineGrad;
   ctx.lineWidth = 1.5;
   ctx.lineJoin = "round";
   ctx.strokeText(ctaUrl, W / 2, uPillY + uPillH / 2);
