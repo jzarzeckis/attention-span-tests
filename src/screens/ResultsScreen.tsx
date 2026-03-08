@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { resultsStore } from "@/utils/resultsStore";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,18 @@ function LeaderboardSubmit({ score }: { score: number }) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [available, setAvailable] = useState<boolean | null>(null);
 
-  const handleSubmit = useCallback(async () => {
+  useEffect(() => {
+    fetch("/api/leaderboard")
+      .then((r) => setAvailable(r.status !== 503))
+      .catch(() => setAvailable(false));
+  }, []);
+
+  if (available === null) return null;
+  if (!available) return null;
+
+  const handleSubmit = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     setStatus("submitting");
@@ -40,7 +50,7 @@ function LeaderboardSubmit({ score }: { score: number }) {
       setErrorMsg("Network error");
       setStatus("error");
     }
-  }, [name, score]);
+  };
 
   if (status === "success") {
     return (
