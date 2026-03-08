@@ -220,7 +220,6 @@ export async function generateScoreImage(
   ctx.textAlign = "center";
   const ctaGrad = ctx.createLinearGradient(W / 2 - 320, 0, W / 2 + 320, 0);
   ctaGrad.addColorStop(0, "#ef4444");
-  ctaGrad.addColorStop(0.5, "#a855f7");
   ctaGrad.addColorStop(1, "#3b82f6");
   ctx.fillStyle = ctaGrad;
   ctx.fillText("test your own attention span", W / 2, 1115);
