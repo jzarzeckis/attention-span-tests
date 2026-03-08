@@ -18,16 +18,6 @@ function LeaderboardSubmit({ score }: { score: number }) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [available, setAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    fetch("/api/leaderboard")
-      .then((r) => setAvailable(r.status !== 503))
-      .catch(() => setAvailable(false));
-  }, []);
-
-  if (available === null) return null;
-  if (!available) return null;
 
   const handleSubmit = async () => {
     const trimmed = name.trim();
