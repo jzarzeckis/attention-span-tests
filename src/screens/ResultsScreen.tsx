@@ -113,7 +113,14 @@ export function calculateScores(): TestScores {
 
   const sart = resultsStore.getItem("sart");
   if (sart && !isSkipped(sart)) {
-    scores.sart = scoreLinear(sart.commissionRate * 100, 11, 30);
+    // Commission score: penalises tapping on the target digit 3 (good: ≤11%, bad: ≥30%)
+    const commissionScore = scoreLinear(sart.commissionRate * 100, 11, 30);
+    // Omission score: penalises failing to tap on non-3 digits (good: ≤5%, bad: ≥30%)
+    const omissionScore = scoreLinear(sart.omissionRate * 100, 5, 30);
+    // Harmonic mean: collapses to 0 if either component is 0,
+    // preventing a perfect score from doing nothing (0% commission but 100% omission)
+    const denom = commissionScore + omissionScore;
+    scores.sart = denom > 0 ? Math.round(2 * commissionScore * omissionScore / denom) : 0;
   }
 
   const stroop = resultsStore.getItem("stroop");
@@ -345,8 +352,8 @@ function buildDetails(scores: TestScores): TestDetail[] {
         key: "sart",
         name: "Sustained Attention (SART)",
         score: scores.sart,
-        metric: `Commission error rate: ${(sart.commissionRate * 100).toFixed(1)}% | Mean RT: ${sart.meanRT.toFixed(0)}ms | RT variability (CV): ${sart.rtCV.toFixed(2)}`,
-        baseline: "Healthy adults: 8–11% commission errors, ~332–375ms mean RT (Robertson et al., 1997)",
+        metric: `Commission error rate: ${(sart.commissionRate * 100).toFixed(1)}% | Omission error rate: ${(sart.omissionRate * 100).toFixed(1)}% | Mean RT: ${sart.meanRT.toFixed(0)}ms | RT variability (CV): ${sart.rtCV.toFixed(2)}`,
+        baseline: "Healthy adults: 8–11% commission errors, <5% omission errors, ~332–375ms mean RT (Robertson et al., 1997)",
         learnMore: LEARN_MORE.sart,
       });
     }
