@@ -135,8 +135,6 @@ export function ScoreboardScreen({ onBack }: ScoreboardScreenProps) {
     return result;
   });
 
-  const topTierIdx = tiersWithOffset.findIndex((g) => g.entries.length > 0);
-
   return (
     <div className="flex min-h-svh flex-col items-center pt-16 px-4 pb-24">
       <div className="w-full max-w-md space-y-4">
@@ -194,7 +192,7 @@ export function ScoreboardScreen({ onBack }: ScoreboardScreenProps) {
                 tier={group.tier}
                 entries={group.entries}
                 globalOffset={group.offset}
-                defaultOpen={i === topTierIdx}
+                defaultOpen={true}
               />
             ))}
           </div>
