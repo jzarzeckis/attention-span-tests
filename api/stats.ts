@@ -147,7 +147,10 @@ export default async function handler(req: Request): Promise<Response> {
   ];
 
   // ── Composite score distribution ─────────────────────────────────────────
-  // For visitors who completed all 4 tests, compute composite score
+  // For visitors who completed all 4 tests, compute composite score.
+  // Use LATERAL JOINs to pick exactly one (most recent) completed session per
+  // visitor per test — plain INNER JOINs would create a Cartesian product when
+  // a visitor has retaken the same test multiple times.
   const completedAllRows = await sql`
     SELECT
       ts_sart.results AS sart_results,
@@ -155,18 +158,30 @@ export default async function handler(req: Request): Promise<Response> {
       ts_pvt.results AS pvt_results,
       ts_gonogo.results AS gonogo_results
     FROM visitors v
-    INNER JOIN test_sessions ts_sart
-      ON ts_sart.visitor_uuid = v.uuid AND ts_sart.test_id = 'sart'
-      AND ts_sart.finished_at IS NOT NULL AND ts_sart.skipped = FALSE
-    INNER JOIN test_sessions ts_stroop
-      ON ts_stroop.visitor_uuid = v.uuid AND ts_stroop.test_id = 'stroop'
-      AND ts_stroop.finished_at IS NOT NULL AND ts_stroop.skipped = FALSE
-    INNER JOIN test_sessions ts_pvt
-      ON ts_pvt.visitor_uuid = v.uuid AND ts_pvt.test_id = 'pvt'
-      AND ts_pvt.finished_at IS NOT NULL AND ts_pvt.skipped = FALSE
-    INNER JOIN test_sessions ts_gonogo
-      ON ts_gonogo.visitor_uuid = v.uuid AND ts_gonogo.test_id = 'gonogo'
-      AND ts_gonogo.finished_at IS NOT NULL AND ts_gonogo.skipped = FALSE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = v.uuid AND test_id = 'sart'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_sart ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = v.uuid AND test_id = 'stroop'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_stroop ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = v.uuid AND test_id = 'pvt'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_pvt ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = v.uuid AND test_id = 'gonogo'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_gonogo ON TRUE
     LIMIT 2000
   `;
 
@@ -246,6 +261,8 @@ export default async function handler(req: Request): Promise<Response> {
   ]);
 
   // ── Per-visitor scatter data (age + self_rated vs composite score) ────────
+  // Same LATERAL-JOIN approach to avoid Cartesian products from multiple
+  // completed sessions per visitor per test.
   const scatterRows = await sql`
     SELECT
       vs.age,
@@ -255,18 +272,30 @@ export default async function handler(req: Request): Promise<Response> {
       ts_pvt.results AS pvt_results,
       ts_gonogo.results AS gonogo_results
     FROM visitor_surveys vs
-    INNER JOIN test_sessions ts_sart
-      ON ts_sart.visitor_uuid = vs.visitor_uuid AND ts_sart.test_id = 'sart'
-      AND ts_sart.finished_at IS NOT NULL AND ts_sart.skipped = FALSE
-    INNER JOIN test_sessions ts_stroop
-      ON ts_stroop.visitor_uuid = vs.visitor_uuid AND ts_stroop.test_id = 'stroop'
-      AND ts_stroop.finished_at IS NOT NULL AND ts_stroop.skipped = FALSE
-    INNER JOIN test_sessions ts_pvt
-      ON ts_pvt.visitor_uuid = vs.visitor_uuid AND ts_pvt.test_id = 'pvt'
-      AND ts_pvt.finished_at IS NOT NULL AND ts_pvt.skipped = FALSE
-    INNER JOIN test_sessions ts_gonogo
-      ON ts_gonogo.visitor_uuid = vs.visitor_uuid AND ts_gonogo.test_id = 'gonogo'
-      AND ts_gonogo.finished_at IS NOT NULL AND ts_gonogo.skipped = FALSE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = vs.visitor_uuid AND test_id = 'sart'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_sart ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = vs.visitor_uuid AND test_id = 'stroop'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_stroop ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = vs.visitor_uuid AND test_id = 'pvt'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_pvt ON TRUE
+    INNER JOIN LATERAL (
+      SELECT results FROM test_sessions
+      WHERE visitor_uuid = vs.visitor_uuid AND test_id = 'gonogo'
+        AND finished_at IS NOT NULL AND skipped = FALSE
+      ORDER BY finished_at DESC LIMIT 1
+    ) ts_gonogo ON TRUE
     LIMIT 2000
   `;
 
@@ -287,33 +316,43 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // ── Per-test metric distributions ─────────────────────────────────────────
+  // Use DISTINCT ON to pick one (most-recent) completed session per visitor so
+  // repeat-takers don't skew the distributions.
   const [pvtRows, sartRows, stroopRows, gonogoRows] = await Promise.all([
     sql`
-      SELECT (results->>'medianRT')::float AS median_rt
+      SELECT DISTINCT ON (visitor_uuid)
+        (results->>'medianRT')::float AS median_rt
       FROM test_sessions
       WHERE test_id = 'pvt' AND finished_at IS NOT NULL AND skipped = FALSE
         AND results->>'medianRT' IS NOT NULL
+      ORDER BY visitor_uuid, finished_at DESC
       LIMIT 2000
     `,
     sql`
-      SELECT (results->>'commissionRate')::float * 100 AS commission_rate
+      SELECT DISTINCT ON (visitor_uuid)
+        (results->>'commissionRate')::float * 100 AS commission_rate
       FROM test_sessions
       WHERE test_id = 'sart' AND finished_at IS NOT NULL AND skipped = FALSE
         AND results->>'commissionRate' IS NOT NULL
+      ORDER BY visitor_uuid, finished_at DESC
       LIMIT 2000
     `,
     sql`
-      SELECT (results->>'interferenceScore')::float AS interference
+      SELECT DISTINCT ON (visitor_uuid)
+        (results->>'interferenceScore')::float AS interference
       FROM test_sessions
       WHERE test_id = 'stroop' AND finished_at IS NOT NULL AND skipped = FALSE
         AND results->>'interferenceScore' IS NOT NULL
+      ORDER BY visitor_uuid, finished_at DESC
       LIMIT 2000
     `,
     sql`
-      SELECT (results->>'commissionErrorRate')::float * 100 AS commission_rate
+      SELECT DISTINCT ON (visitor_uuid)
+        (results->>'commissionErrorRate')::float * 100 AS commission_rate
       FROM test_sessions
       WHERE test_id = 'gonogo' AND finished_at IS NOT NULL AND skipped = FALSE
         AND results->>'commissionErrorRate' IS NOT NULL
+      ORDER BY visitor_uuid, finished_at DESC
       LIMIT 2000
     `,
   ]);
