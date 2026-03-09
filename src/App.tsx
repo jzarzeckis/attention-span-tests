@@ -44,14 +44,43 @@ function initTheme(): ThemeId {
   return "default";
 }
 
+function loadDevResults(): void {
+  // Mock stats crafted to produce scores: SART=0, Stroop=100, PVT=60, GoNoGo=36
+  resultsStore.setItem("sart", {
+    commissionErrors: 7, commissionRate: 0.35, omissionErrors: 2, omissionRate: 0.10,
+    meanRT: 380, rtCV: 0.50, totalTrials: 20,
+  });
+  resultsStore.setItem("stroop", {
+    condition1: { accuracy: 98, meanRT: 400 },
+    condition2: { accuracy: 96, meanRT: 500 },
+    condition3: { accuracy: 95, meanRT: 550 },
+    interferenceScore: 50,
+  });
+  resultsStore.setItem("pvt", {
+    medianRT: 380, meanRT: 385, lapses: 13, lapseRate: 0.13,
+    falseStarts: 1, totalTrials: 100, rts: [],
+  });
+  resultsStore.setItem("gonogo", {
+    commissionErrors: 6, commissionErrorRate: 0.31, omissionErrors: 2, omissionErrorRate: 0.10,
+    meanRT: 300, rtCV: 0.30, totalTrials: 50, goTrials: 40, nogoTrials: 10,
+  });
+}
+
 function initScreen(): Screen {
   const params = new URLSearchParams(window.location.search);
 
-  // Dev shortcut: ?devStart=N
+  // Dev shortcuts
   if (IS_DEV) {
+    // ?devStart=N — jump straight to a specific test
     const devStart = params.get("devStart");
     if (devStart !== null) {
       return { type: "test", testIndex: parseInt(devStart, 10) };
+    }
+
+    // ?devResults — load mock scores (SART=0, Stroop=100, PVT=60, GoNoGo=36) and show results
+    if (params.has("devResults")) {
+      loadDevResults();
+      return { type: "results" };
     }
   }
 
