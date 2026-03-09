@@ -154,17 +154,6 @@ export function StroopTest({ onComplete }: Props) {
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const ACTIVE_PHASES: Phase[] = ["condition1", "condition2", "practice", "condition3"];
-  useEffect(() => {
-    if (!ACTIVE_PHASES.includes(phase)) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      const color = KEY_MAP[e.key.toLowerCase()];
-      if (color) handleAnswer(color);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [phase, handleAnswer]);
-
   useEffect(() => {
     if (phase === "complete") {
       const t = setTimeout(onComplete, 1500);
@@ -244,6 +233,17 @@ export function StroopTest({ onComplete }: Props) {
     },
     [awaiting, trialStart, stimuli, trialIdx, phase]
   );
+
+  const ACTIVE_PHASES: Phase[] = ["condition1", "condition2", "practice", "condition3"];
+  useEffect(() => {
+    if (!ACTIVE_PHASES.includes(phase)) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const color = KEY_MAP[e.key.toLowerCase()];
+      if (color) handleAnswer(color);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [phase, handleAnswer]);
 
   // ── Instructions ─────────────────────────────────────────────────────────
   if (phase === "instructions") {
