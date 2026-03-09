@@ -34,7 +34,7 @@ async function ensureTable(sql: NeonQueryFunction<false, false>) {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST" },
+      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, DELETE" },
     });
   }
 
@@ -53,6 +53,11 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (req.method === "POST") {
     await sql`UPDATE give_ups SET count = count + 1 WHERE id = 1`;
+    return json({ success: true });
+  }
+
+  if (req.method === "DELETE") {
+    await sql`UPDATE give_ups SET count = GREATEST(count - 1, 0) WHERE id = 1`;
     return json({ success: true });
   }
 

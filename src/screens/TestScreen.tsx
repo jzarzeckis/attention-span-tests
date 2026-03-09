@@ -52,25 +52,17 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   useEffect(() => {
     doneRef.current = false;
     completedRef.current = false;
-
-    const handleBeforeUnload = () => {
-      if (!completedRef.current) {
-        navigator.sendBeacon("/api/giveupcounter");
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
   }, [testIndex]);
 
   const safeNext = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
     completedRef.current = true;
+    if (isLastTest) {
+      fetch("/api/giveupcounter", { method: "DELETE" }).catch(() => {});
+    }
     onNext();
-  }, [onNext]);
+  }, [onNext, isLastTest]);
 
   const handleSkip = () => {
     const testId = test?.id;
