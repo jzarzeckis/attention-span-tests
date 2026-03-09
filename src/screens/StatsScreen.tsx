@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sankey,
   ScatterChart,
   Scatter,
   XAxis,
@@ -58,7 +57,11 @@ interface StatsData {
   totalSurveys: number;
 }
 
-// ── Sankey Diagram ────────────────────────────────────────────────────────────
+// ── Custom SVG Funnel / Sankey ────────────────────────────────────────────────
+// We render this manually (no recharts Sankey) so that we have full positional
+// control. recharts Sankey auto-assigns column depth as max(source_depths)+1,
+// which placed any single-sink dropout node in the same column as "All 4 Tests"
+// and caused overlap. With a hand-rolled SVG there is no such constraint.
 
 const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "0–9":   "NPC of the Algorithm",
@@ -73,22 +76,37 @@ const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "90–99": "Functional Human",
 };
 
-interface SankeyNodeData {
-  name: string;
+const _SVG_W = 720;
+const _SVG_H = 480;
+const _MARGIN = { top: 20, right: 170, bottom: 20, left: 10 };
+const _NODE_W = 12;
+const _NPAD = 5;
+
+interface CNode {
+  id: string;
+  label: string;
+  count: number;
+  x: number;
+  y: number;
+  h: number;
+  color: string;
+  nextOutY: number;
+  nextInY: number;
+}
+
+interface CLink {
+  sourceX: number;
+  targetX: number;
+  sourceY: number;
+  targetY: number;
+  w: number;
   color: string;
 }
 
-interface SankeyLinkData {
-  source: number;
-  target: number;
-  value: number;
-  isDropout: boolean;
-}
-
-function buildSankeyData(
+function buildCustomSankey(
   funnel: FunnelStep[],
   scoreDistribution: DistributionBucket[],
-): { nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null {
+): { nodes: CNode[]; links: CLink[] } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
   const visited    = funnelMap["Visited"]     ?? 0;
   const surveyDone = funnelMap["Survey done"] ?? 0;
@@ -99,159 +117,116 @@ function buildSankeyData(
 
   if (visited === 0) return null;
 
-  const nodes: SankeyNodeData[] = [
-    { name: "Visitors",    color: "#818cf8" }, // 0
-    { name: "Survey Done", color: "#818cf8" }, // 1
-    { name: "SART Done",   color: "#818cf8" }, // 2
-    { name: "Stroop Done", color: "#818cf8" }, // 3
-    { name: "PVT Done",    color: "#818cf8" }, // 4
-    { name: "All 4 Tests", color: "#34d399" }, // 5
+  const W = _SVG_W - _MARGIN.left - _MARGIN.right;
+  const H = _SVG_H - _MARGIN.top - _MARGIN.bottom;
+  const upperH = H * 0.62; // main flow nodes live in the upper 62%
+  const scale = (upperH * 0.85) / visited;
+
+  const mainStages = [
+    { shortLabel: "Visitors", count: visited    },
+    { shortLabel: "Survey",   count: surveyDone },
+    { shortLabel: "SART",     count: sartDone   },
+    { shortLabel: "Stroop",   count: stroopDone },
+    { shortLabel: "PVT",      count: pvtDone    },
+    { shortLabel: "GoNoGo",   count: gonogoDone },
   ];
 
-  const links: SankeyLinkData[] = [];
-  const add = (s: number, t: number, v: number, drop = false) => {
-    if (v > 0 && t >= 0) links.push({ source: s, target: t, value: v, isDropout: drop });
+  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
+  const totalDropped = visited - gonogoDone;
+
+  // 6 main-stage columns + 1 final column for buckets/sink
+  const colSpacing = W / 6;
+  const finalColX = 6 * colSpacing;
+
+  const makeNode = (
+    id: string, label: string, count: number,
+    x: number, y: number, color: string,
+  ): CNode => {
+    const h = Math.max(count * scale, 4);
+    return { id, label, count, x, y, h, color, nextOutY: y, nextInY: y };
   };
 
-  // ── Per-stage dropout nodes ───────────────────────────────────────────────
-  // Using one leaf node per dropout stage (instead of a single "Skill Issue"
-  // accumulator) avoids the recharts column-depth collision that placed the old
-  // aggregator in the same column as "All 4 Tests", causing the centring overlap.
-  // Each dropout leaf has exactly one incoming source, so recharts can position
-  // it cleanly in the final column alongside the score-bucket leaves.
-  const dropAmounts = [
-    Math.max(0, visited    - surveyDone), // quit before survey
-    Math.max(0, surveyDone - sartDone),   // quit after survey
-    Math.max(0, sartDone   - stroopDone), // quit after SART
-    Math.max(0, stroopDone - pvtDone),    // quit after Stroop
-    Math.max(0, pvtDone    - gonogoDone), // quit after PVT
-  ];
-  const dropSources = [0, 1, 2, 3, 4];
-  const dropLabels  = [
-    "🪦 Pre-survey",
-    "🪦 Post-survey",
-    "🪦 Post-SART",
-    "🪦 Post-Stroop",
-    "🪦 Post-PVT",
-  ];
-
-  // Allocate a node index for each non-zero dropout stage
-  const dropNodeIdxs = dropAmounts.map((amount, i) => {
-    if (amount <= 0) return -1;
-    const idx = nodes.length;
-    nodes.push({ name: dropLabels[i], color: "#f87171" });
-    return idx;
+  // Main flow nodes — each vertically centred in the upper area
+  const mainNodes: CNode[] = mainStages.map((s, i) => {
+    const h = Math.max(s.count * scale, 4);
+    const y = (upperH - h) / 2;
+    return makeNode(`stage-${i}`, s.shortLabel, s.count, i * colSpacing, y, "#818cf8");
   });
 
-  // ── Score buckets ─────────────────────────────────────────────────────────
-  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
-  const bucketStart = nodes.length;
-  for (const b of activeBuckets) {
+  // Score bucket nodes — stacked in the upper area of the final column
+  let bucketCurY = 0;
+  const rawBuckets = activeBuckets.map((b) => {
+    const h = Math.max(b.count * scale, 4);
     const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
     const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
-    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
+    const node = makeNode(`bucket-${b.bucket}`, b.bucket, b.count, finalColX, bucketCurY, color);
+    bucketCurY += node.h + _NPAD;
+    return node;
+  });
+  const totalBucketH = Math.max(0, bucketCurY - _NPAD);
+  const bucketOffsetY = (upperH - totalBucketH) / 2;
+  const bucketNodes: CNode[] = rawBuckets.map((n) => ({
+    ...n,
+    y: n.y + bucketOffsetY,
+    nextOutY: n.y + bucketOffsetY,
+    nextInY:  n.y + bucketOffsetY,
+  }));
+
+  // Single dropout sink — below the upper area
+  const dropNode = totalDropped > 0
+    ? makeNode("dropout", "🪦 Skill Issue", totalDropped, finalColX, upperH + (H - upperH) * 0.35, "#f87171")
+    : null;
+
+  // ── Link builder ─────────────────────────────────────────────────────────
+  const links: CLink[] = [];
+  const addLink = (src: CNode, tgt: CNode, value: number, color: string) => {
+    if (value <= 0) return;
+    const w = Math.max(value * scale, 1.5);
+    links.push({
+      sourceX: src.x + _NODE_W,
+      targetX: tgt.x,
+      sourceY: src.nextOutY + w / 2,
+      targetY: tgt.nextInY  + w / 2,
+      w,
+      color,
+    });
+    src.nextOutY += w;
+    tgt.nextInY  += w;
+  };
+
+  // 1. Main continuation flow (top portion of each node)
+  for (let i = 0; i < mainNodes.length - 1; i++) {
+    const src = mainNodes[i];
+    const tgt = mainNodes[i + 1];
+    if (src && tgt) addLink(src, tgt, mainStages[i + 1]?.count ?? 0, "#818cf8");
   }
 
-  // ── Links ─────────────────────────────────────────────────────────────────
-  // Main funnel flow added first → recharts renders these at the top of each
-  // node so the "continuing" path stays visually above the dropout flows.
-  add(0, 1, surveyDone);
-  add(1, 2, sartDone);
-  add(2, 3, stroopDone);
-  add(3, 4, pvtDone);
-  add(4, 5, gonogoDone);
+  // 2. Dropout flows → single sink (below continuation, so they exit from the
+  //    bottom of each stage node; added closest-to-sink first to avoid crossings)
+  if (dropNode) {
+    const dropAmounts = [
+      visited    - surveyDone,
+      surveyDone - sartDone,
+      sartDone   - stroopDone,
+      stroopDone - pvtDone,
+      pvtDone    - gonogoDone,
+    ];
+    for (let i = dropAmounts.length - 1; i >= 0; i--) {
+      const src = mainNodes[i];
+      const amt = dropAmounts[i];
+      if (src && amt && amt > 0) addLink(src, dropNode, amt, "#f87171");
+    }
+  }
 
-  // Dropout links added after → rendered at the bottom of each source node
-  dropAmounts.forEach((amount, i) => {
-    add(dropSources[i], dropNodeIdxs[i], amount, true);
-  });
-
-  // Score bucket fan-out
+  // 3. Score bucket fan-out from final stage
+  const lastMain = mainNodes[mainNodes.length - 1];
   activeBuckets.forEach((b, i) => {
-    add(5, bucketStart + i, b.count);
+    const tgt = bucketNodes[i];
+    if (lastMain && tgt) addLink(lastMain, tgt, b.count, "#34d399");
   });
 
-  return { nodes, links };
-}
-
-function SankeyNodeShape(props: {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  payload?: SankeyNodeData & { value?: number };
-}) {
-  const { x = 0, y = 0, width = 10, height = 0, payload } = props;
-  if (!payload || height === 0) return null;
-  const fill = payload.color ?? "#818cf8";
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.9} rx={2} />
-      <text
-        x={x + width + 6}
-        y={y + height / 2}
-        textAnchor="start"
-        dominantBaseline="middle"
-        style={{ fontSize: "11px", fill: "#9ca3af", fontFamily: "inherit" }}
-      >
-        {payload.name}
-        {payload.value != null ? ` (${payload.value.toLocaleString()})` : ""}
-      </text>
-    </g>
-  );
-}
-
-function SankeyLinkShape(props: {
-  sourceX?: number;
-  targetX?: number;
-  sourceY?: number;
-  targetY?: number;
-  sourceControlX?: number;
-  targetControlX?: number;
-  linkWidth?: number;
-  payload?: SankeyLinkData;
-}) {
-  const {
-    sourceX = 0,
-    targetX = 0,
-    sourceY = 0,
-    targetY = 0,
-    sourceControlX = 0,
-    targetControlX = 0,
-    linkWidth = 0,
-    payload,
-  } = props;
-  if (linkWidth === 0) return null;
-  const isDropout = payload?.isDropout === true;
-  const fill = isDropout ? "#f87171" : "#818cf8";
-  const half = linkWidth / 2;
-  return (
-    <path
-      d={`M${sourceX},${sourceY + half}
-          C${sourceControlX},${sourceY + half}
-           ${targetControlX},${targetY + half}
-           ${targetX},${targetY + half}
-          L${targetX},${targetY - half}
-          C${targetControlX},${targetY - half}
-           ${sourceControlX},${sourceY - half}
-           ${sourceX},${sourceY - half}
-          Z`}
-      fill={fill}
-      fillOpacity={0.25}
-    />
-  );
-}
-
-function SankeyTooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name?: string; value?: number } }> }) {
-  if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload;
-  if (!item) return null;
-  return (
-    <div className="bg-background border rounded px-2 py-1 text-xs shadow-md">
-      {item.name && <div className="font-medium">{item.name}</div>}
-      {item.value != null && <div>Count: {item.value.toLocaleString()}</div>}
-    </div>
-  );
+  const allNodes = [...mainNodes, ...bucketNodes, ...(dropNode ? [dropNode] : [])];
+  return { nodes: allNodes, links };
 }
 
 function VisitorFlowSankey({
@@ -261,9 +236,9 @@ function VisitorFlowSankey({
   funnel: FunnelStep[];
   scoreDistribution: DistributionBucket[];
 }) {
-  const data = buildSankeyData(funnel, scoreDistribution);
+  const result = buildCustomSankey(funnel, scoreDistribution);
 
-  if (!data || data.links.length === 0) {
+  if (!result || result.links.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-8">
         No data yet. Share the link and come back when participants start taking the test!
@@ -271,22 +246,86 @@ function VisitorFlowSankey({
     );
   }
 
+  const { nodes, links } = result;
+  const mainNodes   = nodes.filter((n) => n.id.startsWith("stage-"));
+  const bucketNodes = nodes.filter((n) => n.id.startsWith("bucket-"));
+  const dropNode    = nodes.find((n) => n.id === "dropout");
+
+  const innerH  = _SVG_H - _MARGIN.top - _MARGIN.bottom;
+  const upperH  = innerH * 0.62;
+  const labelY  = upperH + 6; // label row sits just below the flow bars
+
   return (
-    <div style={{ width: "100%", height: 560 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <Sankey
-          data={data}
-          nodePadding={12}
-          nodeWidth={16}
-          linkCurvature={0.5}
-          iterations={64}
-          node={<SankeyNodeShape />}
-          link={<SankeyLinkShape />}
-          margin={{ top: 10, right: 160, bottom: 10, left: 10 }}
-        >
-          <Tooltip content={<SankeyTooltipContent />} />
-        </Sankey>
-      </ResponsiveContainer>
+    <div style={{ width: "100%", height: _SVG_H }}>
+      <svg
+        viewBox={`0 0 ${_SVG_W} ${_SVG_H}`}
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <g transform={`translate(${_MARGIN.left},${_MARGIN.top})`}>
+          {/* Links — drawn behind nodes */}
+          {links.map((link, i) => {
+            const cp   = (link.targetX - link.sourceX) / 2;
+            const half = link.w / 2;
+            return (
+              <path
+                key={i}
+                d={[
+                  `M${link.sourceX},${link.sourceY - half}`,
+                  `C${link.sourceX + cp},${link.sourceY - half}`,
+                  `${link.targetX - cp},${link.targetY - half}`,
+                  `${link.targetX},${link.targetY - half}`,
+                  `L${link.targetX},${link.targetY + half}`,
+                  `C${link.targetX - cp},${link.targetY + half}`,
+                  `${link.sourceX + cp},${link.sourceY + half}`,
+                  `${link.sourceX},${link.sourceY + half} Z`,
+                ].join(" ")}
+                fill={link.color}
+                fillOpacity={0.25}
+              />
+            );
+          })}
+
+          {/* Main flow nodes — labels below the flow area */}
+          {mainNodes.map((node) => (
+            <g key={node.id}>
+              <rect x={node.x} y={node.y} width={_NODE_W} height={node.h} fill={node.color} fillOpacity={0.9} rx={2} />
+              <text x={node.x + _NODE_W / 2} y={labelY} textAnchor="middle"
+                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}>
+                {node.label}
+              </text>
+              <text x={node.x + _NODE_W / 2} y={labelY + 13} textAnchor="middle"
+                style={{ fontSize: "9px", fill: "#6b7280", fontFamily: "inherit" }}>
+                {node.count.toLocaleString()}
+              </text>
+            </g>
+          ))}
+
+          {/* Score bucket nodes — labels to the right */}
+          {bucketNodes.map((node) => (
+            <g key={node.id}>
+              <rect x={node.x} y={node.y} width={_NODE_W} height={node.h} fill={node.color} fillOpacity={0.9} rx={2} />
+              <text x={node.x + _NODE_W + 5} y={node.y + node.h / 2}
+                textAnchor="start" dominantBaseline="middle"
+                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}>
+                {node.label} ({node.count.toLocaleString()})
+              </text>
+            </g>
+          ))}
+
+          {/* Single dropout sink — label to the right */}
+          {dropNode && (
+            <g>
+              <rect x={dropNode.x} y={dropNode.y} width={_NODE_W} height={dropNode.h} fill={dropNode.color} fillOpacity={0.9} rx={2} />
+              <text x={dropNode.x + _NODE_W + 5} y={dropNode.y + dropNode.h / 2}
+                textAnchor="start" dominantBaseline="middle"
+                style={{ fontSize: "10px", fill: "#f87171", fontFamily: "inherit" }}>
+                {dropNode.label} ({dropNode.count.toLocaleString()})
+              </text>
+            </g>
+          )}
+        </g>
+      </svg>
     </div>
   );
 }
@@ -743,9 +782,8 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
-                  From first visit through all four tests. Each stage branches: those who continue flow right,
-                  those who quit appear as a separate red node in the final column. Completers fan out into score
-                  buckets (red = fried, yellow = mid, green = sharp).
+                  From first visit through all four tests. Blue flows continue right; red flows drop to a single
+                  🪦 Skill Issue sink. Completers fan out into score buckets (red = fried, yellow = mid, green = sharp).
                 </CardDescription>
               </CardHeader>
               <CardContent>
