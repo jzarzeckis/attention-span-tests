@@ -90,25 +90,60 @@ function buildSankeyData(
   scoreDistribution: DistributionBucket[],
 ): { nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
-  const visited = funnelMap["Visited"] ?? 0;
+  const visited    = funnelMap["Visited"]     ?? 0;
   const surveyDone = funnelMap["Survey done"] ?? 0;
-  const sartDone = funnelMap["SART done"] ?? 0;
+  const sartDone   = funnelMap["SART done"]   ?? 0;
   const stroopDone = funnelMap["Stroop done"] ?? 0;
-  const pvtDone = funnelMap["PVT done"] ?? 0;
+  const pvtDone    = funnelMap["PVT done"]    ?? 0;
   const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
 
   if (visited === 0) return null;
 
   const nodes: SankeyNodeData[] = [
-    { name: "Visitors", color: "#818cf8" },      // 0
-    { name: "Survey Done", color: "#818cf8" },   // 1
-    { name: "SART Done", color: "#818cf8" },     // 2
-    { name: "Stroop Done", color: "#818cf8" },   // 3
-    { name: "PVT Done", color: "#818cf8" },      // 4
-    { name: "All 4 Tests", color: "#34d399" },   // 5
-    { name: "🪦 Skill Issue", color: "#f87171" },  // 6
+    { name: "Visitors",    color: "#818cf8" }, // 0
+    { name: "Survey Done", color: "#818cf8" }, // 1
+    { name: "SART Done",   color: "#818cf8" }, // 2
+    { name: "Stroop Done", color: "#818cf8" }, // 3
+    { name: "PVT Done",    color: "#818cf8" }, // 4
+    { name: "All 4 Tests", color: "#34d399" }, // 5
   ];
 
+  const links: SankeyLinkData[] = [];
+  const add = (s: number, t: number, v: number, drop = false) => {
+    if (v > 0 && t >= 0) links.push({ source: s, target: t, value: v, isDropout: drop });
+  };
+
+  // ── Per-stage dropout nodes ───────────────────────────────────────────────
+  // Using one leaf node per dropout stage (instead of a single "Skill Issue"
+  // accumulator) avoids the recharts column-depth collision that placed the old
+  // aggregator in the same column as "All 4 Tests", causing the centring overlap.
+  // Each dropout leaf has exactly one incoming source, so recharts can position
+  // it cleanly in the final column alongside the score-bucket leaves.
+  const dropAmounts = [
+    Math.max(0, visited    - surveyDone), // quit before survey
+    Math.max(0, surveyDone - sartDone),   // quit after survey
+    Math.max(0, sartDone   - stroopDone), // quit after SART
+    Math.max(0, stroopDone - pvtDone),    // quit after Stroop
+    Math.max(0, pvtDone    - gonogoDone), // quit after PVT
+  ];
+  const dropSources = [0, 1, 2, 3, 4];
+  const dropLabels  = [
+    "🪦 Pre-survey",
+    "🪦 Post-survey",
+    "🪦 Post-SART",
+    "🪦 Post-Stroop",
+    "🪦 Post-PVT",
+  ];
+
+  // Allocate a node index for each non-zero dropout stage
+  const dropNodeIdxs = dropAmounts.map((amount, i) => {
+    if (amount <= 0) return -1;
+    const idx = nodes.length;
+    nodes.push({ name: dropLabels[i], color: "#f87171" });
+    return idx;
+  });
+
+  // ── Score buckets ─────────────────────────────────────────────────────────
   const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
   const bucketStart = nodes.length;
   for (const b of activeBuckets) {
@@ -117,22 +152,19 @@ function buildSankeyData(
     nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
   }
 
-  const links: SankeyLinkData[] = [];
-  const add = (s: number, t: number, v: number, drop = false) => {
-    if (v > 0) links.push({ source: s, target: t, value: v, isDropout: drop });
-  };
-
-  // Main flow
+  // ── Links ─────────────────────────────────────────────────────────────────
+  // Main funnel flow added first → recharts renders these at the top of each
+  // node so the "continuing" path stays visually above the dropout flows.
   add(0, 1, surveyDone);
-  add(0, 6, Math.max(0, visited - surveyDone), true);
   add(1, 2, sartDone);
-  add(1, 6, Math.max(0, surveyDone - sartDone), true);
   add(2, 3, stroopDone);
-  add(2, 6, Math.max(0, sartDone - stroopDone), true);
   add(3, 4, pvtDone);
-  add(3, 6, Math.max(0, stroopDone - pvtDone), true);
   add(4, 5, gonogoDone);
-  add(4, 6, Math.max(0, pvtDone - gonogoDone), true);
+
+  // Dropout links added after → rendered at the bottom of each source node
+  dropAmounts.forEach((amount, i) => {
+    add(dropSources[i], dropNodeIdxs[i], amount, true);
+  });
 
   // Score bucket fan-out
   activeBuckets.forEach((b, i) => {
@@ -240,17 +272,17 @@ function VisitorFlowSankey({
   }
 
   return (
-    <div style={{ width: "100%", height: 440 }}>
+    <div style={{ width: "100%", height: 560 }}>
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
           data={data}
-          nodePadding={14}
+          nodePadding={12}
           nodeWidth={16}
           linkCurvature={0.5}
           iterations={64}
           node={<SankeyNodeShape />}
           link={<SankeyLinkShape />}
-          margin={{ top: 10, right: 150, bottom: 10, left: 10 }}
+          margin={{ top: 10, right: 160, bottom: 10, left: 10 }}
         >
           <Tooltip content={<SankeyTooltipContent />} />
         </Sankey>
@@ -712,8 +744,8 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                 <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
                   From first visit through all four tests. Each stage branches: those who continue flow right,
-                  those who drop off feed the red "🪦 Skill Issue" node. Completers fan out into score buckets
-                  (red = fried, yellow = mid, green = sharp).
+                  those who quit appear as a separate red node in the final column. Completers fan out into score
+                  buckets (red = fried, yellow = mid, green = sharp).
                 </CardDescription>
               </CardHeader>
               <CardContent>
