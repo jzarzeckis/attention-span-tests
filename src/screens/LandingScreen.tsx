@@ -18,6 +18,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
     >
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
+          <div style={{ display: 'inline-block', fontSize: '3rem', animation: 'float 3s ease-in-out infinite' }}>🦋</div>
           <h1 className="text-5xl font-black tracking-tight bg-gradient-to-br from-primary to-[oklch(0.78_0.20_100)] bg-clip-text text-transparent">Brainrot Meter</h1>
           <p className="text-muted-foreground text-lg">
             Find out how fried your attention span really is.
