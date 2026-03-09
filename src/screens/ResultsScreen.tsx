@@ -88,6 +88,22 @@ interface TestScores {
   gonogo: number | null;
 }
 
+function getFakeScores(): Partial<TestScores> | null {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("fakeScores");
+  if (!raw) return null;
+  const parts = raw.split(",").map((s) => {
+    const n = parseInt(s.trim(), 10);
+    return isNaN(n) ? null : Math.max(0, Math.min(100, n));
+  });
+  const keys: (keyof TestScores)[] = ["sart", "stroop", "pvt", "gonogo"];
+  const result: Partial<TestScores> = {};
+  keys.forEach((k, i) => {
+    if (parts[i] !== null && parts[i] !== undefined) result[k] = parts[i] as number;
+  });
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
@@ -333,7 +349,7 @@ const LEARN_MORE: Record<keyof TestScores, LearnMore> = {
   },
 };
 
-function buildDetails(scores: TestScores): TestDetail[] {
+function buildDetails(scores: TestScores, fakeOverrides: Partial<TestScores> | null): TestDetail[] {
   const details: TestDetail[] = [];
 
   const sart = resultsStore.getItem("sart");
@@ -350,6 +366,15 @@ function buildDetails(scores: TestScores): TestDetail[] {
         learnMore: LEARN_MORE.sart,
       });
     }
+  } else if (fakeOverrides?.sart !== undefined) {
+    details.push({
+      key: "sart",
+      name: "Sustained Attention (SART)",
+      score: scores.sart,
+      metric: "Preview score",
+      baseline: "Healthy adults: 8–11% commission errors, ~332–375ms mean RT (Robertson et al., 1997)",
+      learnMore: LEARN_MORE.sart,
+    });
   }
 
   const stroop = resultsStore.getItem("stroop");
@@ -366,6 +391,15 @@ function buildDetails(scores: TestScores): TestDetail[] {
         learnMore: LEARN_MORE.stroop,
       });
     }
+  } else if (fakeOverrides?.stroop !== undefined) {
+    details.push({
+      key: "stroop",
+      name: "Stroop Color-Word",
+      score: scores.stroop,
+      metric: "Preview score",
+      baseline: "Typical interference effect: ~100ms; larger = weaker executive control",
+      learnMore: LEARN_MORE.stroop,
+    });
   }
 
   const pvt = resultsStore.getItem("pvt");
@@ -382,6 +416,15 @@ function buildDetails(scores: TestScores): TestDetail[] {
         learnMore: LEARN_MORE.pvt,
       });
     }
+  } else if (fakeOverrides?.pvt !== undefined) {
+    details.push({
+      key: "pvt",
+      name: "Psychomotor Vigilance (PVT)",
+      score: scores.pvt,
+      metric: "Preview score",
+      baseline: "Healthy rested adults: ~250ms median RT, <5% lapse rate (Basner & Dinges, 2011)",
+      learnMore: LEARN_MORE.pvt,
+    });
   }
 
   const gonogo = resultsStore.getItem("gonogo");
@@ -398,6 +441,15 @@ function buildDetails(scores: TestScores): TestDetail[] {
         learnMore: LEARN_MORE.gonogo,
       });
     }
+  } else if (fakeOverrides?.gonogo !== undefined) {
+    details.push({
+      key: "gonogo",
+      name: "Go/No-Go",
+      score: scores.gonogo,
+      metric: "Preview score",
+      baseline: "Healthy adolescents/adults: commission error rate ~15–20% (decreases with age through ~16)",
+      learnMore: LEARN_MORE.gonogo,
+    });
   }
 
   return details;
@@ -589,9 +641,12 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
 }
 
 export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }: ResultsScreenProps) {
-  const scores = calculateScores();
+  const fakeOverrides = getFakeScores();
+  const isFakeScore = fakeOverrides !== null;
+  const rawScores = calculateScores();
+  const scores: TestScores = isFakeScore ? { ...rawScores, ...fakeOverrides } : rawScores;
   const composite = compositeScore(scores);
-  const details = buildDetails(scores);
+  const details = buildDetails(scores, fakeOverrides);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
   const selfReport = resultsStore.getItem("selfReport");
 
@@ -670,12 +725,17 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
           </CardContent>
 
           <CardFooter className="flex-col gap-3">
-            {composite !== null && !isShared && testsCompleted === 4 && (
+            {composite !== null && !isShared && !isFakeScore && testsCompleted === 4 && (
               <LeaderboardSubmit score={composite} />
             )}
-            {composite !== null && !isShared && testsCompleted < 4 && (
+            {composite !== null && !isShared && !isFakeScore && testsCompleted < 4 && (
               <p className="text-xs text-muted-foreground text-center">
                 Complete all 4 tests (no skipping) to submit your score to the leaderboard.
+              </p>
+            )}
+            {isFakeScore && (
+              <p className="text-xs text-muted-foreground text-center">
+                Preview mode — leaderboard submission disabled.
               </p>
             )}
             <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>

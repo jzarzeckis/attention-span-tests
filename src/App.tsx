@@ -71,6 +71,11 @@ function initScreen(): Screen {
     }
   }
 
+  // Fake scores preview: ?fakeScores=N1,N2,N3,N4
+  if (params.get("fakeScores")) {
+    return { type: "results" };
+  }
+
   return { type: "landing" };
 }
 
