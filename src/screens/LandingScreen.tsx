@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Github, Trophy, BarChart2 } from "lucide-react";
 import { TEST_LIST } from "@/types";
@@ -9,12 +10,10 @@ interface LandingScreenProps {
   hasProgress: boolean;
   onContinue: () => void;
   onStartOver: () => void;
-  onViewScoreboard: () => void;
-  onViewStats?: () => void;
   isReturningVisitor?: boolean;
 }
 
-export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, onViewScoreboard, onViewStats, isReturningVisitor }: LandingScreenProps) {
+export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, isReturningVisitor }: LandingScreenProps) {
   const [giveUpCount, setGiveUpCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -91,16 +90,18 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, o
                 Check my brainrot
               </Button>
             )}
-            <Button className="w-full gap-2" size="sm" variant="ghost" onClick={onViewScoreboard}>
-              <Trophy className="h-4 w-4" />
-              Scoreboard
+            <Button asChild className="w-full gap-2" size="sm" variant="ghost">
+              <Link href="/scoreboard">
+                <Trophy className="h-4 w-4" />
+                Scoreboard
+              </Link>
             </Button>
-            {onViewStats && (
-              <Button className="w-full gap-2" size="sm" variant="ghost" onClick={onViewStats}>
+            <Button asChild className="w-full gap-2" size="sm" variant="ghost">
+              <Link href="/stats">
                 <BarChart2 className="h-4 w-4" />
                 Human Behaviour Stats
-              </Button>
-            )}
+              </Link>
+            </Button>
           </CardFooter>
         </Card>
       </div>

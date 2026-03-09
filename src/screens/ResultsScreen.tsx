@@ -3,6 +3,7 @@ import { resultsStore } from "@/utils/resultsStore";
 import { getVisitorId } from "@/utils/visitorId";
 import { ChevronDown, ChevronUp, Trophy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import type { SARTStats, StroopStats, PVTStats, GoNoGoStats, SelfReportData, Ski
 
 interface ResultsScreenProps {
   onRestart: () => void;
-  onViewScoreboard: () => void;
   isShared?: boolean;
 }
 
@@ -20,7 +20,7 @@ interface LeaderboardEntry {
   score: number;
 }
 
-function MiniLeaderboard({ userScore, userName, onViewFull }: { userScore: number; userName?: string; onViewFull: () => void }) {
+function MiniLeaderboard({ userScore, userName }: { userScore: number; userName?: string }) {
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -107,9 +107,11 @@ function MiniLeaderboard({ userScore, userName, onViewFull }: { userScore: numbe
         </table>
       </div>
       <p className="text-xs text-muted-foreground text-center">#{rank} out of ~{total} players</p>
-      <Button variant="outline" size="sm" className="w-full gap-2" onClick={onViewFull}>
-        <ExternalLink className="w-3 h-3" />
-        View full scoreboard
+      <Button asChild variant="outline" size="sm" className="w-full gap-2">
+        <Link href="/scoreboard">
+          <ExternalLink className="w-3 h-3" />
+          View full scoreboard
+        </Link>
       </Button>
     </div>
   );
@@ -718,7 +720,7 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
   );
 }
 
-export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }: ResultsScreenProps) {
+export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProps) {
   const scores = calculateScores();
   const composite = compositeScore(scores);
   const details = buildDetails(scores);
@@ -805,7 +807,7 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
               <LeaderboardSubmit score={composite} onSuccess={(name) => setSubmittedName(name)} />
             )}
             {composite !== null && !isShared && testsCompleted === 4 && (
-              <MiniLeaderboard userScore={composite} userName={submittedName} onViewFull={onViewScoreboard} />
+              <MiniLeaderboard userScore={composite} userName={submittedName} />
             )}
             {composite !== null && !isShared && testsCompleted < 4 && (
               <p className="text-xs text-muted-foreground text-center">
@@ -813,9 +815,11 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
               </p>
             )}
             {(composite === null || isShared || testsCompleted < 4) && (
-              <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
-                <Trophy className="w-4 h-4" />
-                View Scoreboard
+              <Button asChild variant="secondary" className="w-full font-semibold gap-2" size="lg">
+                <Link href="/scoreboard">
+                  <Trophy className="w-4 h-4" />
+                  View Scoreboard
+                </Link>
               </Button>
             )}
             <Button className="w-full" size="lg" onClick={onRestart}>

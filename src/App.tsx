@@ -359,11 +359,7 @@ function AppInner() {
     setScreen({ type: "landing" });
   };
 
-  const handleViewScoreboard = () => navigate({ type: "scoreboard", from: "results" });
-  const handleViewScoreboardFromLanding = () => navigate({ type: "scoreboard", from: "landing" });
   const handleBackFromScoreboard = () => history.back();
-
-  const handleViewStats = () => navigate({ type: "stats" });
   const handleBackFromStats = () => history.back();
 
   return (
@@ -374,8 +370,6 @@ function AppInner() {
           hasProgress={hasAnyProgress()}
           onContinue={handleContinue}
           onStartOver={handleRestart}
-          onViewScoreboard={handleViewScoreboardFromLanding}
-          onViewStats={handleViewStats}
           isReturningVisitor={!!returningSurvey}
         />
       )}
@@ -386,7 +380,7 @@ function AppInner() {
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
       )}
       {screen.type === "results" && (
-        <ResultsScreen onRestart={handleRestart} onViewScoreboard={handleViewScoreboard} isShared={!!screen.isShared} />
+        <ResultsScreen onRestart={handleRestart} isShared={!!screen.isShared} />
       )}
       {screen.type === "scoreboard" && (
         <ScoreboardScreen onBack={handleBackFromScoreboard} />

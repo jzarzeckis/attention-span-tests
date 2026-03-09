@@ -32,13 +32,15 @@ describe("LandingScreen", () => {
   afterEach(() => { cleanup(); });
 
   test("shows title and start button", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />
+);
     expect(screen.getByText("Brainrot Meter")).toBeInTheDocument();
     expect(screen.getByText("Check my brainrot")).toBeInTheDocument();
   });
 
   test("shows test list", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />
+);
     expect(screen.getByText("Sustained Attention (SART)")).toBeInTheDocument();
     expect(screen.getByText("Stroop Color-Word")).toBeInTheDocument();
     expect(screen.getByText("Psychomotor Vigilance (PVT)")).toBeInTheDocument();
@@ -47,13 +49,15 @@ describe("LandingScreen", () => {
 
   test("calls onStart when clicking start button", () => {
     const onStart = jest.fn();
-    render(<LandingScreen onStart={onStart} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<LandingScreen onStart={onStart} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />
+);
     fireEvent.click(screen.getByText("Check my brainrot"));
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
   test("shows continue and start over buttons when has progress", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={jest.fn()} onStartOver={jest.fn()} />
+);
     expect(screen.getByText("Continue where you left off")).toBeInTheDocument();
     expect(screen.getByText("Start over")).toBeInTheDocument();
   });
@@ -61,7 +65,8 @@ describe("LandingScreen", () => {
   test("calls onContinue and onStartOver correctly", () => {
     const onContinue = jest.fn();
     const onStartOver = jest.fn();
-    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={onContinue} onStartOver={onStartOver} onViewScoreboard={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={onContinue} onStartOver={onStartOver} />
+);
 
     fireEvent.click(screen.getByText("Continue where you left off"));
     expect(onContinue).toHaveBeenCalledTimes(1);
@@ -234,7 +239,8 @@ describe("ResultsScreen", () => {
   });
 
   test("shows 'No results yet' when no tests completed", () => {
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
     expect(screen.getByText("No results yet")).toBeInTheDocument();
   });
 
@@ -244,7 +250,8 @@ describe("ResultsScreen", () => {
     resultsStore.setItem("pvt", goodPvt);
     resultsStore.setItem("gonogo", goodGonogo);
 
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
 
     expect(screen.getByText("Attention Score")).toBeInTheDocument();
     expect(screen.getByText("Based on 4 of 4 tests")).toBeInTheDocument();
@@ -252,19 +259,21 @@ describe("ResultsScreen", () => {
 
   test("shows test detail cards for completed tests", () => {
     resultsStore.setItem("sart", goodSart);
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
     expect(screen.getByText("Sustained Attention (SART)")).toBeInTheDocument();
   });
 
   test("shows skipped card for skipped tests", () => {
     resultsStore.setItem("sart", { skipped: true });
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
     expect(screen.getByText("Skipped")).toBeInTheDocument();
   });
 
   test("shows shared results banner when isShared", () => {
     resultsStore.setItem("sart", goodSart);
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={true} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={true} />);
     expect(screen.getByText("You're viewing someone else's results")).toBeInTheDocument();
     expect(screen.getByText("Take the test yourself →")).toBeInTheDocument();
   });
@@ -272,17 +281,18 @@ describe("ResultsScreen", () => {
   test("restart button calls onRestart", () => {
     resultsStore.setItem("sart", goodSart);
     const onRestart = jest.fn();
-    render(<ResultsScreen onRestart={onRestart} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={onRestart} />
+);
     fireEvent.click(screen.getByText("Take Test Again"));
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
 
-  test("scoreboard button calls onViewScoreboard", () => {
+  test("scoreboard link has correct href", () => {
     resultsStore.setItem("sart", goodSart);
-    const onViewScoreboard = jest.fn();
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={onViewScoreboard} />);
-    fireEvent.click(screen.getByText("View Scoreboard"));
-    expect(onViewScoreboard).toHaveBeenCalledTimes(1);
+    render(<ResultsScreen onRestart={jest.fn()} />);
+    const link = screen.getByText("View Scoreboard").closest("a");
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute("href")).toBe("/scoreboard");
   });
 
   test("shows self-report context when selfReport and composite exist", () => {
@@ -294,7 +304,8 @@ describe("ResultsScreen", () => {
       selfRatedAttention: 4,
       screenTime: "Less than 2 hrs",
     });
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
     expect(screen.getByText("Your self-report context")).toBeInTheDocument();
   });
 
@@ -303,7 +314,7 @@ describe("ResultsScreen", () => {
     resultsStore.setItem("stroop", goodStroop);
     resultsStore.setItem("pvt", goodPvt);
     resultsStore.setItem("gonogo", goodGonogo);
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={false} />);
     expect(screen.getByText("Submit to Scoreboard")).toBeInTheDocument();
   });
 
@@ -325,7 +336,7 @@ describe("ResultsScreen", () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
 
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={false} />);
 
     // Should show auto-submitting message with the nickname
     expect(screen.getByText(/AutoPlayer/)).toBeInTheDocument();
@@ -345,7 +356,7 @@ describe("ResultsScreen", () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
 
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={false} />);
 
     expect(screen.getByText("Loading leaderboard...")).toBeInTheDocument();
 
@@ -361,7 +372,7 @@ describe("ResultsScreen", () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
 
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={true} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={true} />);
 
     expect(screen.queryByText("Loading leaderboard...")).not.toBeInTheDocument();
 
@@ -373,14 +384,15 @@ describe("ResultsScreen", () => {
     resultsStore.setItem("stroop", goodStroop);
     resultsStore.setItem("pvt", goodPvt);
     resultsStore.setItem("gonogo", goodGonogo);
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={true} />);
+    render(<ResultsScreen onRestart={jest.fn()} isShared={true} />);
     expect(screen.queryByText("Submit to Scoreboard")).not.toBeInTheDocument();
   });
 
   test("shows partial results message when not all tests completed", () => {
     resultsStore.setItem("sart", goodSart);
     resultsStore.setItem("stroop", { skipped: true });
-    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} />);
+    render(<ResultsScreen onRestart={jest.fn()} />
+);
     expect(screen.getByText(/Complete all 4 tests/)).toBeInTheDocument();
   });
 });
