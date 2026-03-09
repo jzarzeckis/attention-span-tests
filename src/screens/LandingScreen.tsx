@@ -56,7 +56,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
             </ul>
           </CardContent>
           <CardFooter className="flex-col gap-3">
-            {giveUpCount !== null && giveUpCount > 0 && (
+            {giveUpCount !== null && (
               <p className="text-xs text-muted-foreground/70 text-center">
                 🏳️ <span className="font-semibold">{giveUpCount.toLocaleString()}</span> {giveUpCount === 1 ? "person has" : "people have"} rage-quit this test.
               </p>
