@@ -4,10 +4,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
 import { resultsStore } from "@/utils/resultsStore";
+import { getOrCreateVisitorId } from "@/utils/visitorId";
 import { SARTTest } from "./tests/SARTTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
 import { GoNoGoTest } from "./tests/GoNoGoTest";
+
+function trackTestEvent(testId: string, action: "start" | "finish", extra?: { results?: unknown; skipped?: boolean }) {
+  const visitorId = getOrCreateVisitorId();
+  fetch("/api/test-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, visitorId, testId, ...extra }),
+  }).catch(() => {});
+}
 
 interface TestScreenProps {
   testIndex: number;
@@ -52,7 +62,11 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   useEffect(() => {
     doneRef.current = false;
     completedRef.current = false;
-  }, [testIndex]);
+    // Track test start
+    if (test?.id) {
+      trackTestEvent(test.id, "start");
+    }
+  }, [testIndex, test?.id]);
 
   const safeNext = useCallback(() => {
     if (doneRef.current) return;
@@ -61,13 +75,25 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     if (isLastTest) {
       fetch("/api/giveupcounter", { method: "DELETE" }).catch(() => {});
     }
+    // Track test finish with results
+    if (test?.id) {
+      const results = resultsStore.getItem(test.id);
+      const isSkipped = results && "skipped" in results && results.skipped === true;
+      trackTestEvent(test.id, "finish", {
+        results: isSkipped ? undefined : results ?? undefined,
+        skipped: !!isSkipped,
+      });
+    }
     onNext();
-  }, [onNext, isLastTest]);
+  }, [onNext, isLastTest, test?.id]);
 
   const handleSkip = () => {
     const testId = test?.id;
     if (testId && !resultsStore.hasItem(testId)) {
       resultsStore.setItem(testId, { skipped: true });
+    }
+    if (testId) {
+      trackTestEvent(testId, "finish", { skipped: true });
     }
     safeNext();
   };
