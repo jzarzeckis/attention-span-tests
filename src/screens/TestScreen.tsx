@@ -46,13 +46,29 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
 
   // Prevent double-advancing (skip + test completion racing)
   const doneRef = useRef(false);
+  // Track whether user completed/skipped this test (vs. abandoning the page)
+  const completedRef = useRef(false);
+
   useEffect(() => {
     doneRef.current = false;
+    completedRef.current = false;
+
+    const handleBeforeUnload = () => {
+      if (!completedRef.current) {
+        navigator.sendBeacon("/api/giveupcounter");
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [testIndex]);
 
   const safeNext = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
+    completedRef.current = true;
     onNext();
   }, [onNext]);
 

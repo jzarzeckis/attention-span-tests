@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Github } from "lucide-react";
@@ -11,6 +12,17 @@ interface LandingScreenProps {
 }
 
 export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }: LandingScreenProps) {
+  const [giveUpCount, setGiveUpCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/giveupcounter")
+      .then((res) => res.json())
+      .then((data: { count?: number }) => {
+        if (typeof data.count === "number") setGiveUpCount(data.count);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div
       className="flex min-h-svh flex-col items-center justify-center p-4"
@@ -44,6 +56,11 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
             </ul>
           </CardContent>
           <CardFooter className="flex-col gap-3">
+            {giveUpCount !== null && giveUpCount > 0 && (
+              <p className="text-xs text-muted-foreground/70 text-center">
+                🏳️ <span className="font-semibold">{giveUpCount.toLocaleString()}</span> {giveUpCount === 1 ? "person has" : "people have"} rage-quit this test.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground text-center">
               ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
             </p>
