@@ -115,7 +115,7 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
         className="fixed bottom-5 right-5 z-40 rounded-full bg-muted/60 px-2.5 py-1.5 text-xs text-muted-foreground/50 hover:text-muted-foreground/80 hover:bg-muted/80 transition-all active:scale-95"
         aria-label="Toggle assistance"
       >
-        {showAssistance ? "✕" : "🏄"}
+        {showAssistance ? "✕" : "🏄 Assistance"}
       </button>
 
       {/* Subway Surfers Assistance Overlay */}
