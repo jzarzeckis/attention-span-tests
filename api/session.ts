@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { getDb, ensureTables } from "./_db";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -10,33 +10,6 @@ function json(data: unknown, status = 200): Response {
       "Access-Control-Allow-Origin": "*",
     },
   });
-}
-
-async function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) return null;
-  return neon(databaseUrl);
-}
-
-async function ensureTables(sql: NeonQueryFunction<false, false>) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS visitors (
-      uuid TEXT PRIMARY KEY,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS visitor_surveys (
-      id SERIAL PRIMARY KEY,
-      visitor_uuid TEXT NOT NULL REFERENCES visitors(uuid) ON DELETE CASCADE,
-      age TEXT NOT NULL,
-      short_form_usage TEXT NOT NULL,
-      restlessness TEXT NOT NULL,
-      self_rated_attention INTEGER NOT NULL,
-      screen_time TEXT NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `;
 }
 
 function isValidUUID(s: unknown): s is string {

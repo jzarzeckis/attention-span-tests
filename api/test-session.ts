@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { getDb, ensureTables } from "./_db";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -12,38 +12,8 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-async function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) return null;
-  return neon(databaseUrl);
-}
-
 const VALID_TEST_IDS = ["sart", "stroop", "pvt", "gonogo"] as const;
 type TestId = (typeof VALID_TEST_IDS)[number];
-
-async function ensureTables(sql: NeonQueryFunction<false, false>) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS visitors (
-      uuid TEXT PRIMARY KEY,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS test_sessions (
-      id SERIAL PRIMARY KEY,
-      visitor_uuid TEXT NOT NULL,
-      test_id TEXT NOT NULL,
-      started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      finished_at TIMESTAMP WITH TIME ZONE,
-      results JSONB,
-      skipped BOOLEAN NOT NULL DEFAULT FALSE
-    )
-  `;
-  await sql`
-    CREATE INDEX IF NOT EXISTS test_sessions_visitor_test
-    ON test_sessions (visitor_uuid, test_id)
-  `;
-}
 
 function isValidUUID(s: unknown): s is string {
   if (typeof s !== "string") return false;

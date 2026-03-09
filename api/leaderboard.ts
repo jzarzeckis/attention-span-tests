@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { getDb, ensureLeaderboardTable } from "./_db";
 
 const MAX_ENTRIES = 500;
 
@@ -14,32 +14,9 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-async function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    return null;
-  }
-  return neon(databaseUrl);
-}
-
 function isValidUUID(s: unknown): s is string {
   if (typeof s !== "string") return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-}
-
-async function ensureTable(sql: NeonQueryFunction<false, false>) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS leaderboard (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      score INTEGER NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `;
-  // Safe migration: add visitor_uuid column for existing tables
-  await sql`
-    ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS visitor_uuid TEXT
-  `;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -54,7 +31,7 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: "Leaderboard not configured" }, 503);
   }
 
-  await ensureTable(sql);
+  await ensureLeaderboardTable(sql);
 
   if (req.method === "POST") {
     let body: { name?: unknown; score?: unknown; visitorId?: unknown };
