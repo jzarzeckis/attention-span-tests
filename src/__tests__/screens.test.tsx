@@ -74,13 +74,14 @@ describe("LandingScreen", () => {
 describe("QuestionnaireScreen", () => {
   afterEach(() => { cleanup(); });
 
-  test("shows all questions", () => {
+  test("shows all questions including nickname field", () => {
     render(<QuestionnaireScreen onComplete={jest.fn()} onSkip={jest.fn()} />);
     expect(screen.getByText("How old are you?")).toBeInTheDocument();
     expect(screen.getByText(/Daily TikTok/)).toBeInTheDocument();
     expect(screen.getByText(/restless/)).toBeInTheDocument();
     expect(screen.getByText(/rate your own attention/)).toBeInTheDocument();
     expect(screen.getByText(/Total daily screen time/)).toBeInTheDocument();
+    expect(screen.getByText("Leaderboard nickname")).toBeInTheDocument();
   });
 
   test("Start Tests button is disabled until all required fields filled", () => {
@@ -116,6 +117,39 @@ describe("QuestionnaireScreen", () => {
 
     // Self-report saved
     expect(resultsStore.hasItem("selfReport")).toBe(true);
+  });
+
+  test("nickname is saved in selfReport when provided", () => {
+    const onComplete = jest.fn();
+    render(<QuestionnaireScreen onComplete={onComplete} onSkip={jest.fn()} />);
+
+    fireEvent.click(screen.getByText("21+"));
+    fireEvent.click(screen.getByText("Less than 30 min"));
+    fireEvent.click(screen.getByText("Rarely"));
+    fireEvent.click(screen.getByText("Less than 2 hrs"));
+
+    const nicknameInput = screen.getByPlaceholderText(/BrainrotKing99/);
+    fireEvent.change(nicknameInput, { target: { value: "TestPlayer" } });
+
+    fireEvent.click(screen.getByText("Start Tests"));
+
+    const saved = resultsStore.getItem("selfReport");
+    expect(saved?.nickname).toBe("TestPlayer");
+  });
+
+  test("nickname is optional — submits without it and selfReport has no nickname", () => {
+    const onComplete = jest.fn();
+    render(<QuestionnaireScreen onComplete={onComplete} onSkip={jest.fn()} />);
+
+    fireEvent.click(screen.getByText("21+"));
+    fireEvent.click(screen.getByText("Less than 30 min"));
+    fireEvent.click(screen.getByText("Rarely"));
+    fireEvent.click(screen.getByText("Less than 2 hrs"));
+
+    fireEvent.click(screen.getByText("Start Tests"));
+
+    const saved = resultsStore.getItem("selfReport");
+    expect(saved?.nickname).toBeUndefined();
   });
 });
 
@@ -271,6 +305,67 @@ describe("ResultsScreen", () => {
     resultsStore.setItem("gonogo", goodGonogo);
     render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
     expect(screen.getByText("Submit to Scoreboard")).toBeInTheDocument();
+  });
+
+  test("shows auto-submitting message when selfReport has nickname and all 4 tests done", () => {
+    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", goodStroop);
+    resultsStore.setItem("pvt", goodPvt);
+    resultsStore.setItem("gonogo", goodGonogo);
+    resultsStore.setItem("selfReport", {
+      age: "21+",
+      shortFormUsage: "Less than 30 min",
+      restlessness: "Rarely",
+      selfRatedAttention: 4,
+      screenTime: "Less than 2 hrs",
+      nickname: "AutoPlayer",
+    });
+
+    // Mock fetch to keep it pending so we can observe the "submitting" state
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
+
+    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
+
+    // Should show auto-submitting message with the nickname
+    expect(screen.getByText(/AutoPlayer/)).toBeInTheDocument();
+    // Manual form should not be visible when auto-submitting
+    expect(screen.queryByText("Submit to Scoreboard")).not.toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  test("shows mini leaderboard loading state when all 4 tests completed", () => {
+    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", goodStroop);
+    resultsStore.setItem("pvt", goodPvt);
+    resultsStore.setItem("gonogo", goodGonogo);
+
+    // Mock fetch to stay pending so we stay in loading state
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
+
+    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={false} />);
+
+    expect(screen.getByText("Loading leaderboard...")).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  test("mini leaderboard not shown for shared results", () => {
+    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", goodStroop);
+    resultsStore.setItem("pvt", goodPvt);
+    resultsStore.setItem("gonogo", goodGonogo);
+
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
+
+    render(<ResultsScreen onRestart={jest.fn()} onViewScoreboard={jest.fn()} isShared={true} />);
+
+    expect(screen.queryByText("Loading leaderboard...")).not.toBeInTheDocument();
+
+    global.fetch = originalFetch;
   });
 
   test("does not show leaderboard submit for shared results", () => {
