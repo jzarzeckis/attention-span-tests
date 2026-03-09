@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { resultsStore } from "@/utils/resultsStore";
-import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,13 +14,117 @@ interface ResultsScreenProps {
   isShared?: boolean;
 }
 
-function LeaderboardSubmit({ score }: { score: number }) {
-  const [name, setName] = useState("");
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+}
+
+function MiniLeaderboard({ userScore, userName, onViewFull }: { userScore: number; userName?: string; onViewFull: () => void }) {
+  const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/leaderboard")
+      .then((r) => r.json())
+      .then((data) => {
+        setEntries(data as LeaderboardEntry[]);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <p className="text-xs text-muted-foreground text-center py-2">Loading leaderboard...</p>;
+  }
+  if (!entries) return null;
+
+  // If the user's own entry is in the list (after auto-submit), remove it to avoid duplication
+  // with the highlighted "YOU" row
+  let displayEntries = entries;
+  if (userName) {
+    const userIdx = entries.findIndex((e) => e.name === userName && e.score === userScore);
+    if (userIdx !== -1) {
+      displayEntries = [...entries.slice(0, userIdx), ...entries.slice(userIdx + 1)];
+    }
+  }
+
+  // 1-indexed rank: count entries with strictly higher score
+  const rank = displayEntries.filter((e) => e.score > userScore).length + 1;
+  const total = displayEntries.length + 1; // approximate; user may not be submitted yet
+
+  const CONTEXT = 2;
+  const startIdx = Math.max(0, rank - 1 - CONTEXT);
+  const endIdx = Math.min(displayEntries.length, rank - 1 + CONTEXT);
+  const above = displayEntries.slice(startIdx, rank - 1);
+  const below = displayEntries.slice(rank - 1, endIdx);
+  const showTopEllipsis = startIdx > 0;
+  const showBottomEllipsis = endIdx < entries.length;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Leaderboard Position</p>
+      <div className="rounded-md border overflow-hidden text-sm">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-14">Place</th>
+              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Name</th>
+              <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {showTopEllipsis && (
+              <tr className="border-b">
+                <td className="px-3 py-1 text-xs text-muted-foreground" colSpan={3}>···</td>
+              </tr>
+            )}
+            {above.map((entry, i) => (
+              <tr key={startIdx + i} className="border-b">
+                <td className="px-3 py-2 text-xs text-muted-foreground">#{startIdx + i + 1}</td>
+                <td className="px-3 py-2">{entry.name}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{entry.score}%</td>
+              </tr>
+            ))}
+            <tr className="border-b bg-primary/10 font-semibold">
+              <td className="px-3 py-2 text-xs text-primary">#{rank}</td>
+              <td className="px-3 py-2 text-primary">{userName ?? "YOU"}</td>
+              <td className="px-3 py-2 text-right tabular-nums text-primary">{userScore}%</td>
+            </tr>
+            {below.map((entry, i) => (
+              <tr key={rank + i} className={i < below.length - 1 || showBottomEllipsis ? "border-b" : ""}>
+                <td className="px-3 py-2 text-xs text-muted-foreground">#{rank + 1 + i}</td>
+                <td className="px-3 py-2">{entry.name}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{entry.score}%</td>
+              </tr>
+            ))}
+            {showBottomEllipsis && (
+              <tr>
+                <td className="px-3 py-1 text-xs text-muted-foreground" colSpan={3}>···</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground text-center">#{rank} out of ~{total} players</p>
+      <Button variant="outline" size="sm" className="w-full gap-2" onClick={onViewFull}>
+        <ExternalLink className="w-3 h-3" />
+        View full scoreboard
+      </Button>
+    </div>
+  );
+}
+
+function LeaderboardSubmit({ score, onSuccess }: { score: number; onSuccess: (name: string) => void }) {
+  const selfReport = resultsStore.getItem("selfReport");
+  const prefillName = selfReport?.nickname?.trim() ?? "";
+
+  const [name, setName] = useState(prefillName);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const didAutoSubmit = useRef(false);
 
-  const handleSubmit = async () => {
-    const trimmed = name.trim();
+  const submit = async (nameToSubmit: string) => {
+    const trimmed = nameToSubmit.trim();
     if (!trimmed) return;
     setStatus("submitting");
     try {
@@ -31,6 +135,7 @@ function LeaderboardSubmit({ score }: { score: number }) {
       });
       if (res.ok) {
         setStatus("success");
+        onSuccess(trimmed);
       } else {
         const data = await res.json() as { error?: string };
         setErrorMsg(data.error ?? "Submission failed");
@@ -42,11 +147,27 @@ function LeaderboardSubmit({ score }: { score: number }) {
     }
   };
 
+  // Auto-submit once if nickname was provided in the questionnaire
+  useEffect(() => {
+    if (prefillName && !didAutoSubmit.current) {
+      didAutoSubmit.current = true;
+      submit(prefillName);
+    }
+  }, []);
+
   if (status === "success") {
     return (
       <div className="text-center space-y-1 py-2">
         <p className="text-sm font-medium text-green-600 dark:text-green-400">Score submitted!</p>
-        <p className="text-xs text-muted-foreground">You're on the scoreboard.</p>
+        <p className="text-xs text-muted-foreground">You're on the scoreboard as <span className="font-medium text-foreground">{name.trim()}</span>.</p>
+      </div>
+    );
+  }
+
+  if (status === "submitting" && prefillName) {
+    return (
+      <div className="text-center py-2">
+        <p className="text-xs text-muted-foreground">Adding <span className="font-medium text-foreground">{prefillName}</span> to the scoreboard...</p>
       </div>
     );
   }
@@ -61,12 +182,12 @@ function LeaderboardSubmit({ score }: { score: number }) {
           maxLength={30}
           value={name}
           onChange={(e) => { setName(e.target.value); setStatus("idle"); }}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(name); }}
           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
           disabled={status === "submitting"}
         />
         <button
-          onClick={handleSubmit}
+          onClick={() => submit(name)}
           disabled={!name.trim() || status === "submitting"}
           className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors shrink-0"
         >
@@ -601,6 +722,7 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
   const details = buildDetails(scores);
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
   const selfReport = resultsStore.getItem("selfReport");
+  const [submittedName, setSubmittedName] = useState<string | undefined>(undefined);
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center pt-16 px-4 pb-24">
@@ -678,17 +800,22 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
 
           <CardFooter className="flex-col gap-3">
             {composite !== null && !isShared && testsCompleted === 4 && (
-              <LeaderboardSubmit score={composite} />
+              <LeaderboardSubmit score={composite} onSuccess={(name) => setSubmittedName(name)} />
+            )}
+            {composite !== null && !isShared && testsCompleted === 4 && (
+              <MiniLeaderboard userScore={composite} userName={submittedName} onViewFull={onViewScoreboard} />
             )}
             {composite !== null && !isShared && testsCompleted < 4 && (
               <p className="text-xs text-muted-foreground text-center">
                 Complete all 4 tests (no skipping) to submit your score to the leaderboard.
               </p>
             )}
-            <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
-              <Trophy className="w-4 h-4" />
-              View Scoreboard
-            </Button>
+            {(composite === null || isShared || testsCompleted < 4) && (
+              <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
+                <Trophy className="w-4 h-4" />
+                View Scoreboard
+              </Button>
+            )}
             <Button className="w-full" size="lg" onClick={onRestart}>
               Take Test Again
             </Button>

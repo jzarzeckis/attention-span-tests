@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
+import { Trophy } from "lucide-react";
 
 interface QuestionnaireScreenProps {
   onComplete: (data: SelfReportData) => void;
@@ -53,6 +54,7 @@ export function QuestionnaireScreen({ onComplete, onSkip }: QuestionnaireScreenP
   const [restlessness, setRestlessness] = useState("");
   const [selfRatedAttention, setSelfRatedAttention] = useState(3);
   const [screenTime, setScreenTime] = useState("");
+  const [nickname, setNickname] = useState("");
 
   const canProceed = age !== "" && shortFormUsage !== "" && restlessness !== "" && screenTime !== "";
 
@@ -63,6 +65,7 @@ export function QuestionnaireScreen({ onComplete, onSkip }: QuestionnaireScreenP
       restlessness,
       selfRatedAttention,
       screenTime,
+      nickname: nickname.trim() || undefined,
     };
     resultsStore.setItem("selfReport", data);
     onComplete(data);
@@ -163,6 +166,29 @@ export function QuestionnaireScreen({ onComplete, onSkip }: QuestionnaireScreenP
                 </RadioCard>
               ))}
             </RadioGroup>
+          </CardContent>
+        </Card>
+
+        {/* Q6: Leaderboard nickname */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+              Leaderboard nickname
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Optional — enter a name to be automatically added to the leaderboard after completing the tests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <input
+              type="text"
+              placeholder="e.g. BrainrotKing99 (leave blank to skip)"
+              maxLength={30}
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
           </CardContent>
         </Card>
 

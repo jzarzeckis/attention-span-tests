@@ -23,6 +23,7 @@ export interface SelfReportData {
   restlessness: string;
   selfRatedAttention: number;
   screenTime: string;
+  nickname?: string;
 }
 
 export interface SARTStats {
