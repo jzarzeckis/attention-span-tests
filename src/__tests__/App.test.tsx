@@ -185,7 +185,7 @@ describe("App", () => {
       expect(writeTextSpy).toHaveBeenCalledTimes(1);
 
       // The copied URL should contain the encoded results
-      const copiedUrl = writeTextSpy.mock.calls[0]![0] as string;
+      const copiedUrl = (writeTextSpy.mock.calls as unknown as string[][])[0]![0]!;
       expect(copiedUrl).toContain("?r=");
 
       // Verify the URL is decodable back to our results

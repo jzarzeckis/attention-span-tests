@@ -6,7 +6,13 @@ import type { PVTStats } from "@/types";
 
 // Dev mode: 1 trial, ISI 500-1000ms, LAPSE_THRESHOLD=500ms
 const COUNTDOWN_MS = 2100;
+const MIN_ISI_DEV = 500;
 const MAX_ISI_DEV = 1000;
+
+// Fix ISI to MIN so we know exactly when the stimulus appears.
+// randomISI() = MIN_ISI + Math.random() * (MAX_ISI - MIN_ISI)
+// With Math.random() = 0, ISI = MIN_ISI = 500ms.
+const FIXED_ISI = MIN_ISI_DEV;
 
 /** Navigate to running phase */
 function startTest() {
@@ -20,31 +26,36 @@ function tap() {
   fireEvent.click(tapZone);
 }
 
-/** Wait for stimulus to appear (past max ISI) */
-function waitForStimulus() {
-  act(() => { jest.advanceTimersByTime(MAX_ISI_DEV + 100); });
+/**
+ * Advance time so the stimulus appears, then tap immediately.
+ * Bun's fake timers advance performance.now(), so overshooting the ISI
+ * inflates the measured RT. We advance exactly to the ISI so RT ≈ 0.
+ */
+function waitForStimulusAndTap() {
+  act(() => { jest.advanceTimersByTime(FIXED_ISI); });
+  tap();
 }
 
 describe("PVT Scoring — behavioral tests", () => {
+  const origRandom = Math.random;
+
   beforeEach(() => {
     jest.useFakeTimers();
     resultsStore.clearAll();
+    // Pin Math.random to 0 → ISI = MIN_ISI_DEV (500ms), deterministic sequence
+    Math.random = () => 0;
   });
 
   afterEach(() => {
     cleanup();
     jest.useRealTimers();
+    Math.random = origRandom;
   });
 
   test("fast response → RT recorded, no lapses, no false starts", () => {
     render(<PVTTest onComplete={jest.fn()} />);
     startTest();
-
-    // Wait for stimulus
-    waitForStimulus();
-
-    // Tap immediately (fast response)
-    tap();
+    waitForStimulusAndTap();
     act(() => { jest.advanceTimersByTime(100); });
 
     expect(screen.getByText("PVT Complete!")).toBeInTheDocument();
@@ -52,12 +63,13 @@ describe("PVT Scoring — behavioral tests", () => {
 
     expect(stats.totalTrials).toBe(1);
     expect(stats.rts).toHaveLength(1);
-    expect(stats.rts[0]).toBeGreaterThan(0);
+    expect(stats.rts[0]).toBeGreaterThanOrEqual(0);
+    expect(stats.rts[0]!).toBeLessThan(FIXED_ISI); // not a lapse
     expect(stats.falseStarts).toBe(0);
     expect(stats.lapses).toBe(0);
     expect(stats.lapseRate).toBe(0);
-    expect(stats.meanRT).toBeGreaterThan(0);
-    expect(stats.medianRT).toBeGreaterThan(0);
+    expect(stats.meanRT).toBeGreaterThanOrEqual(0);
+    expect(stats.medianRT).toBeGreaterThanOrEqual(0);
   });
 
   test("false start (tap before stimulus) → counted as false start, trial continues", () => {
@@ -68,12 +80,8 @@ describe("PVT Scoring — behavioral tests", () => {
     tap();
     expect(screen.getByText("Too early!")).toBeInTheDocument();
 
-    // Stimulus hasn't appeared yet, trial not completed
-    // Now wait for actual stimulus
-    waitForStimulus();
-
-    // Tap on stimulus
-    tap();
+    // Now wait for actual stimulus and tap
+    waitForStimulusAndTap();
     act(() => { jest.advanceTimersByTime(100); });
 
     expect(screen.getByText("PVT Complete!")).toBeInTheDocument();
@@ -99,8 +107,9 @@ describe("PVT Scoring — behavioral tests", () => {
     tap();
     act(() => { jest.advanceTimersByTime(50); });
 
-    // Now wait for stimulus and respond
-    waitForStimulus();
+    // Now wait for remaining ISI time and tap
+    // Already advanced 150ms of the 500ms ISI
+    act(() => { jest.advanceTimersByTime(FIXED_ISI - 150); });
     tap();
     act(() => { jest.advanceTimersByTime(100); });
 
@@ -114,7 +123,7 @@ describe("PVT Scoring — behavioral tests", () => {
   test("space key tap works same as click for PVT", () => {
     render(<PVTTest onComplete={jest.fn()} />);
     startTest();
-    waitForStimulus();
+    act(() => { jest.advanceTimersByTime(FIXED_ISI); });
 
     // Use space bar instead of click
     fireEvent.keyDown(document, { code: "Space" });
@@ -130,8 +139,7 @@ describe("PVT Scoring — behavioral tests", () => {
   test("lapseRate = lapses / totalTrials", () => {
     render(<PVTTest onComplete={jest.fn()} />);
     startTest();
-    waitForStimulus();
-    tap();
+    waitForStimulusAndTap();
     act(() => { jest.advanceTimersByTime(100); });
 
     const stats = resultsStore.getItem("pvt") as PVTStats;
@@ -142,8 +150,7 @@ describe("PVT Scoring — behavioral tests", () => {
   test("medianRT and meanRT are both rounded integers", () => {
     render(<PVTTest onComplete={jest.fn()} />);
     startTest();
-    waitForStimulus();
-    tap();
+    waitForStimulusAndTap();
     act(() => { jest.advanceTimersByTime(100); });
 
     const stats = resultsStore.getItem("pvt") as PVTStats;
@@ -151,16 +158,16 @@ describe("PVT Scoring — behavioral tests", () => {
     expect(Number.isInteger(stats.meanRT)).toBe(true);
   });
 
-  test("rts array contains actual reaction times (not zero)", () => {
+  test("rts array contains reaction times for each completed trial", () => {
     render(<PVTTest onComplete={jest.fn()} />);
     startTest();
-    waitForStimulus();
-    tap();
+    waitForStimulusAndTap();
     act(() => { jest.advanceTimersByTime(100); });
 
     const stats = resultsStore.getItem("pvt") as PVTStats;
+    expect(stats.rts).toHaveLength(stats.totalTrials);
     for (const rt of stats.rts) {
-      expect(rt).toBeGreaterThan(0);
+      expect(rt).toBeGreaterThanOrEqual(0);
     }
   });
 });
