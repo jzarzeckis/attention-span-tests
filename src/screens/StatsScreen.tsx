@@ -80,7 +80,7 @@ function buildSankeyData(
     { name: "Stroop Done", color: "#818cf8" },   // 3
     { name: "PVT Done", color: "#818cf8" },      // 4
     { name: "All 4 Tests", color: "#34d399" },   // 5
-    { name: "Dropped Off", color: "#f87171" },   // 6
+    { name: "🪦 Skill Issue", color: "#f87171" },  // 6
   ];
 
   const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
@@ -543,7 +543,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                 <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
                   From first visit through all four tests. Each stage branches: those who continue flow right,
-                  those who drop off feed the red "Dropped Off" node. Completers fan out into score buckets
+                  those who drop off feed the red "🪦 Skill Issue" node. Completers fan out into score buckets
                   (red = fried, yellow = mid, green = sharp).
                 </CardDescription>
               </CardHeader>

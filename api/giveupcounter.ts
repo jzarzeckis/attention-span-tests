@@ -34,10 +34,10 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ count: 0 });
   }
 
-  // "Give ups" = visitors who started at least one test but did not finish the final test (gonogo).
-  // This reuses the test_sessions table rather than maintaining a separate counter.
+  // "Give ups" = all visitors who did not finish all tests (gonogo).
+  // Uses the visitors table as the base so that people who visit but never start a test are counted too.
   const [startedRow, finishedRow] = await Promise.all([
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions`,
+    sql`SELECT COUNT(*) AS count FROM visitors`,
     sql`
       SELECT COUNT(DISTINCT visitor_uuid) AS count
       FROM test_sessions
