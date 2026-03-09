@@ -112,10 +112,10 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
       {/* Assistance Button */}
       <button
         onClick={() => setShowAssistance((v) => !v)}
-        className="fixed bottom-5 right-5 z-40 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-5 right-5 z-40 rounded-full bg-muted/60 px-2.5 py-1.5 text-xs text-muted-foreground/50 hover:text-muted-foreground/80 hover:bg-muted/80 transition-all active:scale-95"
         aria-label="Toggle assistance"
       >
-        {showAssistance ? "Hide Assistance" : "🏄 Assistance"}
+        {showAssistance ? "✕" : "🏄"}
       </button>
 
       {/* Subway Surfers Assistance Overlay */}
