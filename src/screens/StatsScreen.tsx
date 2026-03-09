@@ -3,7 +3,18 @@ import { ArrowLeft, Users, ClipboardList, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  Sankey,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
 
 interface StatsScreenProps {
   onBack: () => void;
@@ -41,6 +52,8 @@ interface StatsData {
   sartCommissionRates: DistributionBucket[];
   stroopInterference: DistributionBucket[];
   gonogoCommissionRates: DistributionBucket[];
+  scatterAgeVsScore: Array<{ age: string; score: number }>;
+  scatterSelfVsScore: Array<{ selfRated: number; score: number }>;
   totalVisitors: number;
   totalSurveys: number;
 }
@@ -360,6 +373,145 @@ function DemographicChart({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Scatter Plots ─────────────────────────────────────────────────────────────
+
+const AGE_ORDER = ["13–15", "16–17", "18–20", "21+"];
+
+function scoreColor(score: number): string {
+  if (score >= 70) return "#34d399";
+  if (score >= 40) return "#fbbf24";
+  return "#f87171";
+}
+
+function AgeVsScoreScatter({ data }: { data: Array<{ age: string; score: number }> }) {
+  if (data.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-6">No data yet</p>;
+  }
+
+  const points = data.map((d, i) => ({
+    x: AGE_ORDER.indexOf(d.age) + ((i % 7) - 3) * 0.065,
+    y: d.score,
+    age: d.age,
+    score: d.score,
+  }));
+
+  return (
+    <div style={{ width: "100%", height: 240 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis
+            dataKey="x"
+            type="number"
+            domain={[-0.6, 3.6]}
+            ticks={[0, 1, 2, 3]}
+            tickFormatter={(v: number) => AGE_ORDER[Math.round(v)] ?? ""}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            label={{ value: "Age group", position: "insideBottom", offset: -15, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          />
+          <YAxis
+            dataKey="y"
+            domain={[0, 100]}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            label={{ value: "Score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0]?.payload as { age: string; score: number } | undefined;
+              if (!d) return null;
+              return (
+                <div className="bg-background border rounded px-2 py-1 text-xs shadow-md">
+                  <div>Age: {d.age}</div>
+                  <div>Score: {d.score}/100</div>
+                </div>
+              );
+            }}
+          />
+          <Scatter data={points} fillOpacity={0.85}>
+            {points.map((p, i) => (
+              <Cell key={i} fill={scoreColor(p.score)} />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SelfVsScoreScatter({ data }: { data: Array<{ selfRated: number; score: number }> }) {
+  if (data.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-6">No data yet</p>;
+  }
+
+  const points = data.map((d, i) => ({
+    x: d.selfRated + ((i % 5) - 2) * 0.06,
+    y: d.score,
+    selfRated: d.selfRated,
+    score: d.score,
+  }));
+
+  const selfLabels: Record<number, string> = {
+    1: "Very poor",
+    2: "Poor",
+    3: "Average",
+    4: "Good",
+    5: "Excellent",
+  };
+
+  return (
+    <div style={{ width: "100%", height: 240 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis
+            dataKey="x"
+            type="number"
+            domain={[0.4, 5.6]}
+            ticks={[1, 2, 3, 4, 5]}
+            tickFormatter={(v: number) => String(Math.round(v))}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            label={{ value: "Self-rated attention (1–5)", position: "insideBottom", offset: -15, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          />
+          <YAxis
+            dataKey="y"
+            domain={[0, 100]}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            label={{ value: "Actual score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+          />
+          <ReferenceLine
+            segment={[{ x: 1, y: 10 }, { x: 5, y: 90 }]}
+            stroke="hsl(var(--muted-foreground))"
+            strokeDasharray="4 4"
+            strokeOpacity={0.4}
+            label={{ value: "perfect calibration", position: "insideTopLeft", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+          />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0]?.payload as { selfRated: number; score: number } | undefined;
+              if (!d) return null;
+              return (
+                <div className="bg-background border rounded px-2 py-1 text-xs shadow-md">
+                  <div>Self-rated: {d.selfRated}/5 ({selfLabels[d.selfRated] ?? ""})</div>
+                  <div>Actual score: {d.score}/100</div>
+                </div>
+              );
+            }}
+          />
+          <Scatter data={points} fillOpacity={0.85}>
+            {points.map((p, i) => (
+              <Cell key={i} fill={scoreColor(p.score)} />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -744,6 +896,34 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               </CardHeader>
               <CardContent>
                 <SelfRatedVsActual data={stats.bySelfRatedAttention} />
+              </CardContent>
+            </Card>
+
+            {/* Age vs Score scatter */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Age vs Score</CardTitle>
+                <CardDescription className="text-xs">
+                  Each dot is one person who completed all 4 tests. Colour = performance bucket (red = fried, yellow = mid, green = sharp).
+                  Dots are jittered horizontally to reduce overlap.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AgeVsScoreScatter data={stats.scatterAgeVsScore} />
+              </CardContent>
+            </Card>
+
+            {/* Self-perception vs Performance scatter */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Self-Perception vs Actual Performance</CardTitle>
+                <CardDescription className="text-xs">
+                  How well does self-rated attention predict real scores? Points above the dashed line = underestimators,
+                  below = overestimators. Dashed line = perfect calibration.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SelfVsScoreScatter data={stats.scatterSelfVsScore} />
               </CardContent>
             </Card>
 

@@ -96,6 +96,8 @@ export default async function handler(req: Request): Promise<Response> {
       sartCommissionRates: [],
       stroopInterference: [],
       gonogoCommissionRates: [],
+      scatterAgeVsScore: [],
+      scatterSelfVsScore: [],
       totalVisitors: 0,
       totalSurveys: 0,
     });
@@ -243,6 +245,47 @@ export default async function handler(req: Request): Promise<Response> {
     `,
   ]);
 
+  // ── Per-visitor scatter data (age + self_rated vs composite score) ────────
+  const scatterRows = await sql`
+    SELECT
+      vs.age,
+      vs.self_rated_attention,
+      ts_sart.results AS sart_results,
+      ts_stroop.results AS stroop_results,
+      ts_pvt.results AS pvt_results,
+      ts_gonogo.results AS gonogo_results
+    FROM visitor_surveys vs
+    INNER JOIN test_sessions ts_sart
+      ON ts_sart.visitor_uuid = vs.visitor_uuid AND ts_sart.test_id = 'sart'
+      AND ts_sart.finished_at IS NOT NULL AND ts_sart.skipped = FALSE
+    INNER JOIN test_sessions ts_stroop
+      ON ts_stroop.visitor_uuid = vs.visitor_uuid AND ts_stroop.test_id = 'stroop'
+      AND ts_stroop.finished_at IS NOT NULL AND ts_stroop.skipped = FALSE
+    INNER JOIN test_sessions ts_pvt
+      ON ts_pvt.visitor_uuid = vs.visitor_uuid AND ts_pvt.test_id = 'pvt'
+      AND ts_pvt.finished_at IS NOT NULL AND ts_pvt.skipped = FALSE
+    INNER JOIN test_sessions ts_gonogo
+      ON ts_gonogo.visitor_uuid = vs.visitor_uuid AND ts_gonogo.test_id = 'gonogo'
+      AND ts_gonogo.finished_at IS NOT NULL AND ts_gonogo.skipped = FALSE
+    LIMIT 2000
+  `;
+
+  const scatterAgeVsScore: Array<{ age: string; score: number }> = [];
+  const scatterSelfVsScore: Array<{ selfRated: number; score: number }> = [];
+
+  for (const row of scatterRows) {
+    const composite = computeCompositeFromResults({
+      sart: row.sart_results,
+      stroop: row.stroop_results,
+      pvt: row.pvt_results,
+      gonogo: row.gonogo_results,
+    });
+    if (composite !== null) {
+      scatterAgeVsScore.push({ age: String(row.age), score: composite });
+      scatterSelfVsScore.push({ selfRated: Number(row.self_rated_attention), score: composite });
+    }
+  }
+
   // ── Per-test metric distributions ─────────────────────────────────────────
   const [pvtRows, sartRows, stroopRows, gonogoRows] = await Promise.all([
     sql`
@@ -375,6 +418,8 @@ export default async function handler(req: Request): Promise<Response> {
     sartCommissionRates,
     stroopInterference,
     gonogoCommissionRates,
+    scatterAgeVsScore,
+    scatterSelfVsScore,
     totalVisitors,
     totalSurveys,
   });
