@@ -102,8 +102,8 @@ function buildSankeyData(
   const nodes: SankeyNodeData[] = [
     { name: "Visitors", color: "#818cf8" },      // 0
     { name: "Survey Done", color: "#818cf8" },   // 1
-    { name: "SART Done", color: "#818cf8" },     // 2
-    { name: "Stroop Done", color: "#818cf8" },   // 3
+    { name: "Stroop Done", color: "#818cf8" },   // 2
+    { name: "GoNoGo Done", color: "#818cf8" },   // 3
     { name: "PVT Done", color: "#818cf8" },      // 4
     { name: "All 4 Tests", color: "#34d399" },   // 5
     { name: "🪦 Skill Issue", color: "#f87171" },  // 6
@@ -125,14 +125,14 @@ function buildSankeyData(
   // Main flow
   add(0, 1, surveyDone);
   add(0, 6, Math.max(0, visited - surveyDone), true);
-  add(1, 2, sartDone);
-  add(1, 6, Math.max(0, surveyDone - sartDone), true);
-  add(2, 3, stroopDone);
-  add(2, 6, Math.max(0, sartDone - stroopDone), true);
+  add(1, 2, stroopDone);
+  add(1, 6, Math.max(0, surveyDone - stroopDone), true);
+  add(2, 3, gonogoDone);
+  add(2, 6, Math.max(0, stroopDone - gonogoDone), true);
   add(3, 4, pvtDone);
-  add(3, 6, Math.max(0, stroopDone - pvtDone), true);
-  add(4, 5, gonogoDone);
-  add(4, 6, Math.max(0, pvtDone - gonogoDone), true);
+  add(3, 6, Math.max(0, gonogoDone - pvtDone), true);
+  add(4, 5, sartDone);
+  add(4, 6, Math.max(0, pvtDone - sartDone), true);
 
   // Score bucket fan-out
   activeBuckets.forEach((b, i) => {
@@ -639,7 +639,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
   }, []);
 
   const totalCompleted = stats
-    ? stats.funnel.find((f) => f.label === "GoNoGo done")?.count ?? 0
+    ? stats.funnel.find((f) => f.label === "SART done")?.count ?? 0
     : 0;
 
   return (
@@ -741,40 +741,6 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               </CardContent>
             </Card>
 
-            {/* SART Commission Rate Distribution */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">SART: Commission Error Rate Distribution</CardTitle>
-                <CardDescription className="text-xs">
-                  How often people pressed Space on the forbidden digit "3". Healthy baseline: 8–11%.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Histogram
-                  data={stats.sartCommissionRates}
-                  color="bg-orange-500/70"
-                  emptyMessage="No SART data yet"
-                />
-              </CardContent>
-            </Card>
-
-            {/* PVT Median RT Distribution */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">PVT: Median Reaction Time Distribution</CardTitle>
-                <CardDescription className="text-xs">
-                  Psychomotor vigilance reaction times. Healthy rested adults: ~250ms. Lapses = &gt;500ms.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Histogram
-                  data={stats.pvtMedianRTs}
-                  color="bg-blue-500/70"
-                  emptyMessage="No PVT data yet"
-                />
-              </CardContent>
-            </Card>
-
             {/* Stroop Interference Distribution */}
             <Card>
               <CardHeader className="pb-3">
@@ -805,6 +771,40 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                   data={stats.gonogoCommissionRates}
                   color="bg-rose-500/70"
                   emptyMessage="No Go/No-Go data yet"
+                />
+              </CardContent>
+            </Card>
+
+            {/* PVT Median RT Distribution */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">PVT: Median Reaction Time Distribution</CardTitle>
+                <CardDescription className="text-xs">
+                  Psychomotor vigilance reaction times. Healthy rested adults: ~250ms. Lapses = &gt;500ms.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Histogram
+                  data={stats.pvtMedianRTs}
+                  color="bg-blue-500/70"
+                  emptyMessage="No PVT data yet"
+                />
+              </CardContent>
+            </Card>
+
+            {/* SART Commission Rate Distribution */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">SART: Commission Error Rate Distribution</CardTitle>
+                <CardDescription className="text-xs">
+                  How often people pressed Space on the forbidden digit "3". Healthy baseline: 8–11%.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Histogram
+                  data={stats.sartCommissionRates}
+                  color="bg-orange-500/70"
+                  emptyMessage="No SART data yet"
                 />
               </CardContent>
             </Card>

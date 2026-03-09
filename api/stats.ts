@@ -136,14 +136,14 @@ export default async function handler(req: Request): Promise<Response> {
   const funnel = [
     { label: "Visited", count: totalVisitors },
     { label: "Survey done", count: Number(surveysResult[0]?.count ?? 0) },
-    { label: "SART started", count: Number(sartStarted[0]?.count ?? 0) },
-    { label: "SART done", count: Number(sartFinished[0]?.count ?? 0) },
     { label: "Stroop started", count: Number(stroopStarted[0]?.count ?? 0) },
     { label: "Stroop done", count: Number(stroopFinished[0]?.count ?? 0) },
-    { label: "PVT started", count: Number(pvtStarted[0]?.count ?? 0) },
-    { label: "PVT done", count: Number(pvtFinished[0]?.count ?? 0) },
     { label: "GoNoGo started", count: Number(gonogoStarted[0]?.count ?? 0) },
     { label: "GoNoGo done", count: Number(gonogoFinished[0]?.count ?? 0) },
+    { label: "PVT started", count: Number(pvtStarted[0]?.count ?? 0) },
+    { label: "PVT done", count: Number(pvtFinished[0]?.count ?? 0) },
+    { label: "SART started", count: Number(sartStarted[0]?.count ?? 0) },
+    { label: "SART done", count: Number(sartFinished[0]?.count ?? 0) },
   ];
 
   // ── Composite score distribution ─────────────────────────────────────────
