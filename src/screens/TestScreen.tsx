@@ -52,10 +52,6 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
   useEffect(() => {
     doneRef.current = false;
     completedRef.current = false;
-
-    if (testIndex === 0) {
-      fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
-    }
   }, [testIndex]);
 
   const safeNext = useCallback(() => {

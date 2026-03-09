@@ -227,7 +227,10 @@ function AppInner() {
 
   const handleStart = () => setScreen({ type: "questionnaire" });
 
-  const handleQuestionnaireComplete = () => setScreen({ type: "test", testIndex: 0 });
+  const handleQuestionnaireComplete = () => {
+    fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
+    setScreen({ type: "test", testIndex: 0 });
+  };
 
   const handleContinue = () => {
     const resumeIndex = getResumeIndex();
