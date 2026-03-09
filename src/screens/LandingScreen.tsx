@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github } from "lucide-react";
+import { Github, Share2 } from "lucide-react";
 import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
@@ -8,9 +8,10 @@ interface LandingScreenProps {
   hasProgress: boolean;
   onContinue: () => void;
   onStartOver: () => void;
+  onFlexFakeScore?: () => void;
 }
 
-export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }: LandingScreenProps) {
+export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, onFlexFakeScore }: LandingScreenProps) {
   return (
     <div
       className="flex min-h-svh flex-col items-center justify-center p-4"
@@ -47,6 +48,12 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
             <p className="text-xs text-muted-foreground text-center">
               ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
             </p>
+            {onFlexFakeScore && (
+              <Button className="w-full gap-2" size="lg" variant="secondary" onClick={onFlexFakeScore}>
+                <Share2 className="h-5 w-5 shrink-0" />
+                <span>Flex my score</span>
+              </Button>
+            )}
             {hasProgress ? (
               <>
                 <Button className="w-full" size="lg" onClick={onContinue}>

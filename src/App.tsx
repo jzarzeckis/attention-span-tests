@@ -225,6 +225,36 @@ function AppInner() {
 
   const handleStart = () => setScreen({ type: "questionnaire" });
 
+  const handleFlexFakeScore = useCallback(async () => {
+    const fakeScores = { sart: 0, stroop: 100, pvt: 60, gonogo: 36 };
+    const composite = compositeScore(fakeScores);
+    if (composite === null) return;
+    const rank = getRank(composite);
+    const blob = await generateScoreImage(composite, rank.badge, rank.summary, fakeScores);
+    if (!blob) {
+      toast.error("Could not generate image.");
+      return;
+    }
+    const file = new File([blob], "brainrot-score.png", { type: "image/png" });
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "My Brainrot Score", files: [file] });
+        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = "brainrot-score.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+    toast.success("Score image saved — share it on social media!");
+  }, []);
+
   const handleQuestionnaireComplete = () => setScreen({ type: "test", testIndex: 0 });
 
   const handleContinue = () => {
@@ -262,6 +292,7 @@ function AppInner() {
           hasProgress={hasAnyProgress()}
           onContinue={handleContinue}
           onStartOver={handleRestart}
+          onFlexFakeScore={handleFlexFakeScore}
         />
       )}
       {screen.type === "questionnaire" && (
