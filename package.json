@@ -21,6 +21,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19",
     "react-dom": "^19",
+    "recharts": "^2.15.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1"
   },

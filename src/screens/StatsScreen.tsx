@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Users, ClipboardList, BarChart2, TrendingDown } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 
 interface StatsScreenProps {
   onBack: () => void;
@@ -44,22 +45,195 @@ interface StatsData {
   totalSurveys: number;
 }
 
-// ── Chart primitives ─────────────────────────────────────────────────────────
+// ── Sankey Diagram ────────────────────────────────────────────────────────────
 
-function HBar({ value, max, color = "bg-primary" }: { value: number; max: number; color?: string }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+interface SankeyNodeData {
+  name: string;
+  color: string;
+}
+
+interface SankeyLinkData {
+  source: number;
+  target: number;
+  value: number;
+  isDropout: boolean;
+}
+
+function buildSankeyData(
+  funnel: FunnelStep[],
+  scoreDistribution: DistributionBucket[],
+): { nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null {
+  const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
+  const visited = funnelMap["Visited"] ?? 0;
+  const surveyDone = funnelMap["Survey done"] ?? 0;
+  const sartDone = funnelMap["SART done"] ?? 0;
+  const stroopDone = funnelMap["Stroop done"] ?? 0;
+  const pvtDone = funnelMap["PVT done"] ?? 0;
+  const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
+
+  if (visited === 0) return null;
+
+  const nodes: SankeyNodeData[] = [
+    { name: "Visitors", color: "#818cf8" },      // 0
+    { name: "Survey Done", color: "#818cf8" },   // 1
+    { name: "SART Done", color: "#818cf8" },     // 2
+    { name: "Stroop Done", color: "#818cf8" },   // 3
+    { name: "PVT Done", color: "#818cf8" },      // 4
+    { name: "All 4 Tests", color: "#34d399" },   // 5
+    { name: "Dropped Off", color: "#f87171" },   // 6
+  ];
+
+  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
+  const bucketStart = nodes.length;
+  for (const b of activeBuckets) {
+    const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
+    const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
+    nodes.push({ name: b.bucket, color });
+  }
+
+  const links: SankeyLinkData[] = [];
+  const add = (s: number, t: number, v: number, drop = false) => {
+    if (v > 0) links.push({ source: s, target: t, value: v, isDropout: drop });
+  };
+
+  // Main flow
+  add(0, 1, surveyDone);
+  add(0, 6, Math.max(0, visited - surveyDone), true);
+  add(1, 2, sartDone);
+  add(1, 6, Math.max(0, surveyDone - sartDone), true);
+  add(2, 3, stroopDone);
+  add(2, 6, Math.max(0, sartDone - stroopDone), true);
+  add(3, 4, pvtDone);
+  add(3, 6, Math.max(0, stroopDone - pvtDone), true);
+  add(4, 5, gonogoDone);
+  add(4, 6, Math.max(0, pvtDone - gonogoDone), true);
+
+  // Score bucket fan-out
+  activeBuckets.forEach((b, i) => {
+    add(5, bucketStart + i, b.count);
+  });
+
+  return { nodes, links };
+}
+
+function SankeyNodeShape(props: {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  payload?: SankeyNodeData & { value?: number };
+}) {
+  const { x = 0, y = 0, width = 10, height = 0, payload } = props;
+  if (!payload || height === 0) return null;
+  const fill = payload.color ?? "#818cf8";
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${color}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs tabular-nums text-muted-foreground w-8 text-right">{value.toLocaleString()}</span>
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.9} rx={2} />
+      <text
+        x={x + width + 6}
+        y={y + height / 2}
+        textAnchor="start"
+        dominantBaseline="middle"
+        style={{ fontSize: "11px", fill: "#9ca3af", fontFamily: "inherit" }}
+      >
+        {payload.name}
+        {payload.value != null ? ` (${payload.value.toLocaleString()})` : ""}
+      </text>
+    </g>
+  );
+}
+
+function SankeyLinkShape(props: {
+  sourceX?: number;
+  targetX?: number;
+  sourceY?: number;
+  targetY?: number;
+  sourceControlX?: number;
+  targetControlX?: number;
+  linkWidth?: number;
+  payload?: SankeyLinkData;
+}) {
+  const {
+    sourceX = 0,
+    targetX = 0,
+    sourceY = 0,
+    targetY = 0,
+    sourceControlX = 0,
+    targetControlX = 0,
+    linkWidth = 0,
+    payload,
+  } = props;
+  if (linkWidth === 0) return null;
+  const isDropout = payload?.isDropout === true;
+  const fill = isDropout ? "#f87171" : "#818cf8";
+  const half = linkWidth / 2;
+  return (
+    <path
+      d={`M${sourceX},${sourceY + half}
+          C${sourceControlX},${sourceY + half}
+           ${targetControlX},${targetY + half}
+           ${targetX},${targetY + half}
+          L${targetX},${targetY - half}
+          C${targetControlX},${targetY - half}
+           ${sourceControlX},${sourceY - half}
+           ${sourceX},${sourceY - half}
+          Z`}
+      fill={fill}
+      fillOpacity={0.25}
+    />
+  );
+}
+
+function SankeyTooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name?: string; value?: number } }> }) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0]?.payload;
+  if (!item) return null;
+  return (
+    <div className="bg-background border rounded px-2 py-1 text-xs shadow-md">
+      {item.name && <div className="font-medium">{item.name}</div>}
+      {item.value != null && <div>Count: {item.value.toLocaleString()}</div>}
     </div>
   );
 }
+
+function VisitorFlowSankey({
+  funnel,
+  scoreDistribution,
+}: {
+  funnel: FunnelStep[];
+  scoreDistribution: DistributionBucket[];
+}) {
+  const data = buildSankeyData(funnel, scoreDistribution);
+
+  if (!data || data.links.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-8">
+        No data yet. Share the link and come back when participants start taking the test!
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", height: 440 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <Sankey
+          data={data}
+          nodePadding={14}
+          nodeWidth={16}
+          linkCurvature={0.5}
+          iterations={64}
+          node={<SankeyNodeShape />}
+          link={<SankeyLinkShape />}
+          margin={{ top: 10, right: 150, bottom: 10, left: 10 }}
+        >
+          <Tooltip content={<SankeyTooltipContent />} />
+        </Sankey>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Vertical bar chart (for histograms) ───────────────────────────────────────
 
 function VBar({
   value,
@@ -85,56 +259,6 @@ function VBar({
         />
       </div>
       <span className="text-[10px] text-muted-foreground text-center leading-tight break-words w-full">{label}</span>
-    </div>
-  );
-}
-
-// ── Funnel Chart ──────────────────────────────────────────────────────────────
-
-function FunnelChart({ steps }: { steps: FunnelStep[] }) {
-  if (steps.length === 0 || steps[0]?.count === 0) {
-    return (
-      <p className="text-sm text-muted-foreground text-center py-8">
-        No data yet. Share the link and come back when participants start taking the test!
-      </p>
-    );
-  }
-
-  const maxCount = steps[0]?.count ?? 1;
-
-  return (
-    <div className="space-y-1.5">
-      {steps.map((step, i) => {
-        const pct = maxCount > 0 ? Math.round((step.count / maxCount) * 100) : 0;
-        const dropPct =
-          i > 0 && steps[i - 1] && steps[i - 1]!.count > 0
-            ? Math.round((1 - step.count / steps[i - 1]!.count) * 100)
-            : null;
-
-        return (
-          <div key={step.label}>
-            {dropPct !== null && dropPct > 0 && (
-              <div className="flex items-center gap-1 pl-2 py-0.5">
-                <TrendingDown className="h-3 w-3 text-destructive/60 shrink-0" />
-                <span className="text-[10px] text-destructive/70">{dropPct}% dropped off</span>
-              </div>
-            )}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-28 shrink-0 text-right">{step.label}</span>
-              <div className="flex-1 bg-muted/40 rounded overflow-hidden" style={{ height: 28 }}>
-                <div
-                  className="h-full bg-primary/70 rounded flex items-center justify-end pr-2 transition-all duration-700"
-                  style={{ width: `${Math.max(pct, 2)}%` }}
-                >
-                  <span className="text-[10px] font-semibold text-primary-foreground whitespace-nowrap">
-                    {step.count.toLocaleString()} ({pct}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -282,7 +406,7 @@ function SelfRatedVsActual({ data }: { data: DemographicRow[] }) {
       <div className="space-y-4">
         <div>
           <p className="text-xs font-medium mb-2">SART Commission Rate (lower = better impulse control)</p>
-          {filteredData.map((row, i) => {
+          {filteredData.map((row) => {
             const val = row.avgSartCommission;
             if (val == null) return null;
             return (
@@ -413,16 +537,18 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               />
             </div>
 
-            {/* Funnel */}
+            {/* Sankey Funnel */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">User Funnel — Where People Drop Off</CardTitle>
+                <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
-                  Tracks the journey from first visit through completing all four tests. NULL finish times = abandoned.
+                  From first visit through all four tests. Each stage branches: those who continue flow right,
+                  those who drop off feed the red "Dropped Off" node. Completers fan out into score buckets
+                  (red = fried, yellow = mid, green = sharp).
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <FunnelChart steps={stats.funnel} />
+                <VisitorFlowSankey funnel={stats.funnel} scoreDistribution={stats.scoreDistribution} />
               </CardContent>
             </Card>
 
