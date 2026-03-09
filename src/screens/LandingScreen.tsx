@@ -57,11 +57,11 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
           </CardContent>
           <CardFooter className="flex-col gap-3">
             {giveUpCount !== null && (
-              <div className="w-full rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-center">
-                <p className="text-2xl font-black text-destructive">
+              <div className="w-full rounded-lg border border-muted-foreground/20 bg-muted/40 px-4 py-3 text-center">
+                <p className="text-2xl font-black text-foreground/70">
                   {giveUpCount.toLocaleString()}
                 </p>
-                <p className="text-xs font-medium text-destructive/80 mt-0.5">
+                <p className="text-xs font-medium text-muted-foreground mt-0.5">
                   people have given up on this test
                 </p>
               </div>
