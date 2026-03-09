@@ -60,6 +60,19 @@ interface StatsData {
 
 // ── Sankey Diagram ────────────────────────────────────────────────────────────
 
+const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
+  "0–9":   "NPC of the Algorithm",
+  "10–19": "Skull Full of Reels",
+  "20–29": "Certified Brain-Rot Victim",
+  "30–39": "Algorithm's Favourite Idiot",
+  "40–49": "Dopamine Goblin",
+  "50–59": "TikTok Attention Span",
+  "60–69": "Meme Consumer",
+  "70–79": "Chronic Scroller",
+  "80–89": "Mildly Internet-Poisoned",
+  "90–99": "Functional Human",
+};
+
 interface SankeyNodeData {
   name: string;
   color: string;
@@ -101,7 +114,7 @@ function buildSankeyData(
   for (const b of activeBuckets) {
     const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
     const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
-    nodes.push({ name: b.bucket, color });
+    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
   }
 
   const links: SankeyLinkData[] = [];
