@@ -125,8 +125,8 @@ export function calculateScores(): TestScores {
 
   const stroop = resultsStore.getItem("stroop");
   if (stroop && !isSkipped(stroop)) {
-    // C3 accuracy (good: ≥85%, bad: ≤45% — chance is 25%)
-    const c3AccScore = scoreLinear(stroop.condition3.accuracy, 85, 45);
+    // C3 accuracy (good: 100% — any single error lowers the score, bad: ≤45% — chance is 25%)
+    const c3AccScore = scoreLinear(stroop.condition3.accuracy, 100, 45);
     // Interference effect (good: ≤100ms, bad: ≥400ms)
     const interfScore = scoreLinear(stroop.interferenceScore, 100, 400);
     // Harmonic mean: collapses to 0 if either component is 0,
@@ -144,7 +144,14 @@ export function calculateScores(): TestScores {
 
   const gonogo = resultsStore.getItem("gonogo");
   if (gonogo && !isSkipped(gonogo)) {
-    scores.gonogo = scoreLinear(gonogo.commissionErrorRate * 100, 15, 40);
+    // Commission score: penalises tapping on No-Go (good: 0% — any error lowers score, bad: ≥25%)
+    const commissionScore = scoreLinear(gonogo.commissionErrorRate * 100, 0, 25);
+    // Omission score: penalises missing Go stimuli (good: 0% — any error lowers score, bad: ≥25%)
+    const omissionScore = scoreLinear(gonogo.omissionErrorRate * 100, 0, 25);
+    // Harmonic mean: collapses to 0 if either is 0,
+    // preventing a perfect score from doing nothing (0% commission but 100% omission)
+    const denom = commissionScore + omissionScore;
+    scores.gonogo = denom > 0 ? Math.round(2 * commissionScore * omissionScore / denom) : 0;
   }
 
   return scores;
