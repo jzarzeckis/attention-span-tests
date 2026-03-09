@@ -25,6 +25,20 @@ const LABEL: Record<Color, string> = {
   yellow: "Yellow",
 };
 
+const KEY_MAP: Record<string, Color> = {
+  r: "red",
+  g: "green",
+  b: "blue",
+  y: "yellow",
+};
+
+const KEY_HINT: Record<Color, string> = {
+  red: "R",
+  blue: "B",
+  green: "G",
+  yellow: "Y",
+};
+
 const TEXT_CLS: Record<Color, string> = {
   red: "text-red-600",
   blue: "text-blue-600",
@@ -140,6 +154,17 @@ export function StroopTest({ onComplete }: Props) {
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  const ACTIVE_PHASES: Phase[] = ["condition1", "condition2", "practice", "condition3"];
+  useEffect(() => {
+    if (!ACTIVE_PHASES.includes(phase)) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const color = KEY_MAP[e.key.toLowerCase()];
+      if (color) handleAnswer(color);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [phase, handleAnswer]);
+
   useEffect(() => {
     if (phase === "complete") {
       const t = setTimeout(onComplete, 1500);
@@ -242,6 +267,13 @@ export function StroopTest({ onComplete }: Props) {
           </p>
           <p className="text-muted-foreground">
             Choose from: Red, Blue, Green, Yellow.
+          </p>
+          <p className="text-muted-foreground">
+            Use keyboard shortcuts <kbd className="px-1 py-0.5 rounded border text-xs">R</kbd>{" "}
+            <kbd className="px-1 py-0.5 rounded border text-xs">G</kbd>{" "}
+            <kbd className="px-1 py-0.5 rounded border text-xs">B</kbd>{" "}
+            <kbd className="px-1 py-0.5 rounded border text-xs">Y</kbd>{" "}
+            or click the buttons.
           </p>
         </CardContent>
         <CardFooter>
@@ -418,9 +450,11 @@ export function StroopTest({ onComplete }: Props) {
             size="lg"
             variant="outline"
             disabled={!awaiting}
+            aria-label={LABEL[color]}
             onClick={() => handleAnswer(color)}
           >
             {LABEL[color]}
+            <kbd className="ml-2 text-xs opacity-50 font-sans">{KEY_HINT[color]}</kbd>
           </Button>
         ))}
       </div>
