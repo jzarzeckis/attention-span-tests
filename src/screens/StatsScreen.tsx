@@ -57,11 +57,12 @@ interface StatsData {
   totalSurveys: number;
 }
 
-// ── Custom SVG Funnel / Sankey ────────────────────────────────────────────────
-// We render this manually (no recharts Sankey) so that we have full positional
-// control. recharts Sankey auto-assigns column depth as max(source_depths)+1,
-// which placed any single-sink dropout node in the same column as "All 4 Tests"
-// and caused overlap. With a hand-rolled SVG there is no such constraint.
+// ── D3-style Sankey layout ────────────────────────────────────────────────────
+// Implements the same iterative-relaxation algorithm used by d3-sankey
+// (https://github.com/d3/d3-sankey, MIT licence) without adding a dependency.
+// Key trick: the dropout sink node is forced into the rightmost column via a
+// custom alignment function, so it shares a column with the score buckets and
+// D3's relaxation keeps them separated automatically.
 
 const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "0–9":   "NPC of the Algorithm",
@@ -76,158 +77,304 @@ const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "90–99": "Functional Human",
 };
 
-const _SVG_W = 720;
-const _SVG_H = 480;
-const _MARGIN = { top: 20, right: 170, bottom: 20, left: 10 };
-const _NODE_W = 12;
-const _NPAD = 5;
-
-interface CNode {
+interface SNode {
   id: string;
   label: string;
-  count: number;
-  x: number;
-  y: number;
-  h: number;
+  value: number;
+  depth: number;
+  layer: number;
+  x0: number; x1: number;
+  y0: number; y1: number;
   color: string;
-  nextOutY: number;
-  nextInY: number;
+  sourceLinks: SLink[];
+  targetLinks: SLink[];
 }
 
-interface CLink {
-  sourceX: number;
-  targetX: number;
-  sourceY: number;
-  targetY: number;
-  w: number;
+interface SLink {
+  source: SNode;
+  target: SNode;
+  value: number;
+  width: number;
+  y0: number;  // y-centre at source end
+  y1: number;  // y-centre at target end
   color: string;
 }
 
-function buildCustomSankey(
-  funnel: FunnelStep[],
-  scoreDistribution: DistributionBucket[],
-): { nodes: CNode[]; links: CLink[] } | null {
-  const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
-  const visited    = funnelMap["Visited"]     ?? 0;
-  const surveyDone = funnelMap["Survey done"] ?? 0;
-  const sartDone   = funnelMap["SART done"]   ?? 0;
-  const stroopDone = funnelMap["Stroop done"] ?? 0;
-  const pvtDone    = funnelMap["PVT done"]    ?? 0;
-  const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
+function bucketColor(bucket: string): string {
+  const lo = parseInt(bucket.split("–")[0] ?? "0", 10);
+  return lo < 40 ? "#f87171" : lo < 70 ? "#fbbf24" : "#34d399";
+}
 
-  if (visited === 0) return null;
+// ── Core layout functions (adapted from d3-sankey) ────────────────────────────
 
-  const W = _SVG_W - _MARGIN.left - _MARGIN.right;
-  const H = _SVG_H - _MARGIN.top - _MARGIN.bottom;
-  const upperH = H * 0.62; // main flow nodes live in the upper 62%
-  const scale = (upperH * 0.85) / visited;
-
-  const mainStages = [
-    { shortLabel: "Visitors", count: visited    },
-    { shortLabel: "Survey",   count: surveyDone },
-    { shortLabel: "SART",     count: sartDone   },
-    { shortLabel: "Stroop",   count: stroopDone },
-    { shortLabel: "PVT",      count: pvtDone    },
-    { shortLabel: "GoNoGo",   count: gonogoDone },
-  ];
-
-  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
-  const totalDropped = visited - gonogoDone;
-
-  // 6 main-stage columns + 1 final column for buckets/sink
-  const colSpacing = W / 6;
-  const finalColX = 6 * colSpacing;
-
-  const makeNode = (
-    id: string, label: string, count: number,
-    x: number, y: number, color: string,
-  ): CNode => {
-    const h = Math.max(count * scale, 4);
-    return { id, label, count, x, y, h, color, nextOutY: y, nextInY: y };
-  };
-
-  // Main flow nodes — each vertically centred in the upper area
-  const mainNodes: CNode[] = mainStages.map((s, i) => {
-    const h = Math.max(s.count * scale, 4);
-    const y = (upperH - h) / 2;
-    return makeNode(`stage-${i}`, s.shortLabel, s.count, i * colSpacing, y, "#818cf8");
-  });
-
-  // Score bucket nodes — stacked in the upper area of the final column
-  let bucketCurY = 0;
-  const rawBuckets = activeBuckets.map((b) => {
-    const h = Math.max(b.count * scale, 4);
-    const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
-    const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
-    const node = makeNode(`bucket-${b.bucket}`, b.bucket, b.count, finalColX, bucketCurY, color);
-    bucketCurY += node.h + _NPAD;
-    return node;
-  });
-  const totalBucketH = Math.max(0, bucketCurY - _NPAD);
-  const bucketOffsetY = (upperH - totalBucketH) / 2;
-  const bucketNodes: CNode[] = rawBuckets.map((n) => ({
-    ...n,
-    y: n.y + bucketOffsetY,
-    nextOutY: n.y + bucketOffsetY,
-    nextInY:  n.y + bucketOffsetY,
-  }));
-
-  // Single dropout sink — below the upper area
-  const dropNode = totalDropped > 0
-    ? makeNode("dropout", "🪦 Skill Issue", totalDropped, finalColX, upperH + (H - upperH) * 0.35, "#f87171")
-    : null;
-
-  // ── Link builder ─────────────────────────────────────────────────────────
-  const links: CLink[] = [];
-  const addLink = (src: CNode, tgt: CNode, value: number, color: string) => {
-    if (value <= 0) return;
-    const w = Math.max(value * scale, 1.5);
-    links.push({
-      sourceX: src.x + _NODE_W,
-      targetX: tgt.x,
-      sourceY: src.nextOutY + w / 2,
-      targetY: tgt.nextInY  + w / 2,
-      w,
-      color,
-    });
-    src.nextOutY += w;
-    tgt.nextInY  += w;
-  };
-
-  // 1. Main continuation flow (top portion of each node)
-  for (let i = 0; i < mainNodes.length - 1; i++) {
-    const src = mainNodes[i];
-    const tgt = mainNodes[i + 1];
-    if (src && tgt) addLink(src, tgt, mainStages[i + 1]?.count ?? 0, "#818cf8");
+function assignDepths(nodes: SNode[]) {
+  // BFS from source nodes to assign depth
+  let current = new Set(nodes.filter((n) => n.targetLinks.length === 0));
+  let depth = 0;
+  while (current.size > 0) {
+    for (const n of current) n.depth = depth;
+    const next = new Set<SNode>();
+    for (const n of current) for (const l of n.sourceLinks) next.add(l.target);
+    current = next;
+    depth++;
+    if (depth > nodes.length) break; // cycle guard
   }
+}
 
-  // 2. Dropout flows → single sink (below continuation, so they exit from the
-  //    bottom of each stage node; added closest-to-sink first to avoid crossings)
-  if (dropNode) {
-    const dropAmounts = [
-      visited    - surveyDone,
-      surveyDone - sartDone,
-      sartDone   - stroopDone,
-      stroopDone - pvtDone,
-      pvtDone    - gonogoDone,
-    ];
-    for (let i = dropAmounts.length - 1; i >= 0; i--) {
-      const src = mainNodes[i];
-      const amt = dropAmounts[i];
-      if (src && amt && amt > 0) addLink(src, dropNode, amt, "#f87171");
+function assignLayers(nodes: SNode[], cols: number) {
+  // Like sankeyLeft but force "dropout" to last column
+  for (const n of nodes) {
+    n.layer = n.id === "dropout"
+      ? cols - 1
+      : Math.max(0, Math.min(cols - 1, n.depth));
+  }
+}
+
+function initY(columnNodes: SNode[][], innerH: number, nodePad: number, scale: number) {
+  // Use a uniform scale so node heights match link widths exactly.
+  // Each column is centred vertically within innerH.
+  for (const col of columnNodes) {
+    if (col.length === 0) continue;
+    const totalH = col.reduce((s, n) => s + Math.max(n.value * scale, 2), 0);
+    const gaps   = (col.length - 1) * nodePad;
+    const blockH = totalH + gaps;
+    let y = (innerH - blockH) / 2;  // centre the block
+    for (const n of col) {
+      const h = Math.max(n.value * scale, 2);
+      n.y0 = y;
+      n.y1 = y + h;
+      y += h + nodePad;
     }
   }
+}
 
-  // 3. Score bucket fan-out from final stage
-  const lastMain = mainNodes[mainNodes.length - 1];
-  activeBuckets.forEach((b, i) => {
-    const tgt = bucketNodes[i];
-    if (lastMain && tgt) addLink(lastMain, tgt, b.count, "#34d399");
+// Pull each node toward the weighted centre of the nodes it flows INTO (rightward pass)
+function relaxTopDown(columnNodes: SNode[][], nodePad: number) {
+  for (const col of columnNodes) {
+    for (const n of col) {
+      if (n.sourceLinks.length === 0) continue; // sinks have no outgoing links
+      const total = n.sourceLinks.reduce((s, l) => s + l.value, 0);
+      if (total === 0) continue;
+      const weighted = n.sourceLinks.reduce((s, l) => {
+        // l.target is the downstream node this link flows INTO
+        return s + l.value * ((l.target.y0 + l.target.y1) / 2);
+      }, 0);
+      const dy = weighted / total - (n.y0 + n.y1) / 2;
+      n.y0 += dy;
+      n.y1 += dy;
+    }
+    resolveCollisions(col, nodePad);
+  }
+}
+
+// Pull each node toward the weighted centre of the nodes it receives FROM (leftward pass)
+function relaxBottomUp(columnNodes: SNode[][], nodePad: number) {
+  for (let c = columnNodes.length - 1; c >= 0; c--) {
+    const col = columnNodes[c]!;
+    for (const n of col) {
+      if (n.targetLinks.length === 0) continue; // sources have no incoming links
+      const total = n.targetLinks.reduce((s, l) => s + l.value, 0);
+      if (total === 0) continue;
+      const weighted = n.targetLinks.reduce((s, l) => {
+        // l.source is the upstream node this link flows FROM
+        return s + l.value * ((l.source.y0 + l.source.y1) / 2);
+      }, 0);
+      const dy = weighted / total - (n.y0 + n.y1) / 2;
+      n.y0 += dy;
+      n.y1 += dy;
+    }
+    resolveCollisions(col, nodePad);
+  }
+}
+
+function resolveCollisions(col: SNode[], nodePad: number) {
+  // Sort by current y position (preserves dropout-last order via stable sort in most engines)
+  col.sort((a, b) => a.y0 - b.y0);
+  // Push overlapping nodes downward
+  for (let i = 1; i < col.length; i++) {
+    const prev = col[i - 1]!;
+    const curr = col[i]!;
+    const gap  = curr.y0 - prev.y1;
+    if (gap < nodePad) {
+      const shift = nodePad - gap;
+      curr.y0 += shift;
+      curr.y1 += shift;
+    }
+  }
+  // Then push back upward from the bottom so nodes don't run off the canvas
+  for (let i = col.length - 2; i >= 0; i--) {
+    const curr = col[i]!;
+    const next = col[i + 1]!;
+    const gap  = next.y0 - curr.y1;
+    if (gap < nodePad) {
+      const shift = nodePad - gap;
+      curr.y0 -= shift;
+      curr.y1 -= shift;
+    }
+  }
+}
+
+function assignLinkY(nodes: SNode[], scale: number) {
+  for (const n of nodes) {
+    // Order outgoing links top-to-bottom by target centre
+    n.sourceLinks.sort((a, b) => (a.target.y0 + a.target.y1) - (b.target.y0 + b.target.y1));
+    // Order incoming links top-to-bottom by source centre
+    n.targetLinks.sort((a, b) => (a.source.y0 + a.source.y1) - (b.source.y0 + b.source.y1));
+  }
+  for (const n of nodes) {
+    let sy = n.y0;
+    for (const l of n.sourceLinks) {
+      l.width = Math.max(l.value * scale, 1.5);
+      l.y0 = sy + l.width / 2;
+      sy += l.width;
+    }
+    let ty = n.y0;
+    for (const l of n.targetLinks) {
+      l.width = Math.max(l.value * scale, 1.5);
+      l.y1 = ty + l.width / 2;
+      ty += l.width;
+    }
+  }
+}
+
+// SVG cubic bezier for a Sankey link (same formula as sankeyLinkHorizontal)
+function sankeyPath(link: SLink): string {
+  const x0 = link.source.x1;
+  const x1 = link.target.x0;
+  const cp  = (x1 - x0) / 2;
+  const w2  = link.width / 2;
+  return [
+    `M${x0},${link.y0 - w2}`,
+    `C${x0 + cp},${link.y0 - w2} ${x1 - cp},${link.y1 - w2} ${x1},${link.y1 - w2}`,
+    `L${x1},${link.y1 + w2}`,
+    `C${x1 - cp},${link.y1 + w2} ${x0 + cp},${link.y0 + w2} ${x0},${link.y0 + w2}Z`,
+  ].join(" ");
+}
+
+// ── Full sankey build ─────────────────────────────────────────────────────────
+
+function buildSankey(
+  funnel: FunnelStep[],
+  scoreDistribution: DistributionBucket[],
+  innerW: number,
+  innerH: number,
+  nodeW: number,
+  nodePad: number,
+  iters: number,
+): { nodes: SNode[]; links: SLink[] } | null {
+  const fm    = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
+  const vis   = fm["Visited"]     ?? 0;
+  const sur   = fm["Survey done"] ?? 0;
+  const sar   = fm["SART done"]   ?? 0;
+  const str   = fm["Stroop done"] ?? 0;
+  const pvt   = fm["PVT done"]    ?? 0;
+  const gng   = fm["GoNoGo done"] ?? 0;
+  if (vis === 0) return null;
+
+  const buckets = scoreDistribution.filter((b) => b.count > 0);
+  const dropped = vis - gng;
+
+  // Columns: 0=Visitors … 5=GoNoGo | 6=ScoreBuckets + dropout
+  const NUM_COLS = 7;
+
+  const makeNode = (id: string, label: string, value: number, color: string): SNode => ({
+    id, label, value, color,
+    depth: 0, layer: 0,
+    x0: 0, x1: 0, y0: 0, y1: 0,
+    sourceLinks: [], targetLinks: [],
   });
 
-  const allNodes = [...mainNodes, ...bucketNodes, ...(dropNode ? [dropNode] : [])];
-  return { nodes: allNodes, links };
+  const stageLabels = ["Visitors", "Survey", "SART", "Stroop", "PVT", "GoNoGo"];
+  const stageCounts = [vis, sur, sar, str, pvt, gng];
+  const stageColors = Array(6).fill("#818cf8") as string[];
+
+  const nodes: SNode[] = [
+    ...stageLabels.map((l, i) => makeNode(`s${i}`, l, stageCounts[i] ?? 0, stageColors[i] ?? "#818cf8")),
+    ...buckets.map((b) => makeNode(`b_${b.bucket}`, b.bucket, b.count, bucketColor(b.bucket))),
+    ...(dropped > 0 ? [makeNode("dropout", "🪦 Skill Issue", dropped, "#f87171")] : []),
+  ];
+
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  // Funnel continuation links (blue)
+  const linkDefs: Array<[string, string, number, string]> = [
+    ["s0","s1", sur, "#818cf8"],
+    ["s1","s2", sar, "#818cf8"],
+    ["s2","s3", str, "#818cf8"],
+    ["s3","s4", pvt, "#818cf8"],
+    ["s4","s5", gng, "#818cf8"],
+  ];
+  // Dropout links (red, from each stage that lost people)
+  const dropAmts = [vis-sur, sur-sar, sar-str, str-pvt, pvt-gng];
+  for (let i = 0; i < dropAmts.length; i++) {
+    if ((dropAmts[i] ?? 0) > 0) linkDefs.push([`s${i}`, "dropout", dropAmts[i] ?? 0, "#f87171"]);
+  }
+  // Score bucket links (from GoNoGo)
+  for (const b of buckets) linkDefs.push(["s5", `b_${b.bucket}`, b.count, bucketColor(b.bucket)]);
+
+  const links: SLink[] = linkDefs
+    .filter(([, , v]) => v > 0)
+    .map(([srcId, tgtId, value, color]) => {
+      const source = nodeMap.get(srcId)!;
+      const target = nodeMap.get(tgtId)!;
+      const link: SLink = { source, target, value, color, width: 0, y0: 0, y1: 0 };
+      source.sourceLinks.push(link);
+      target.targetLinks.push(link);
+      return link;
+    });
+
+  // ── Layout ────────────────────────────────────────────────────────────────
+  assignDepths(nodes);
+  assignLayers(nodes, NUM_COLS);
+
+  // x positions
+  const colW = (innerW - nodeW) / (NUM_COLS - 1);
+  for (const n of nodes) {
+    n.x0 = n.layer * colW;
+    n.x1 = n.x0 + nodeW;
+  }
+
+  // Group nodes by column
+  const columnNodes: SNode[][] = Array.from({ length: NUM_COLS }, () => []);
+  for (const n of nodes) {
+    // Keep dropout below score buckets in the final column
+    if (n.id === "dropout") columnNodes[NUM_COLS - 1]!.push(n);
+    else columnNodes[n.layer]!.push(n);
+  }
+  // Keep dropout at the bottom of the last column
+  for (const col of columnNodes) {
+    col.sort((a, b) => {
+      if (a.id === "dropout") return 1;
+      if (b.id === "dropout") return -1;
+      return 0;
+    });
+  }
+
+  // Compute a uniform scale so all columns fit within innerH.
+  // The tightest column is the one where (nodeCount-1)*pad takes the most space.
+  const scale = columnNodes.reduce((minScale, col) => {
+    if (col.length === 0) return minScale;
+    const totalVal = col.reduce((s, n) => s + n.value, 0);
+    const gaps     = (col.length - 1) * nodePad;
+    const s        = (innerH - gaps) / Math.max(totalVal, 1);
+    return Math.min(minScale, s);
+  }, Infinity);
+  const safeScale = scale === Infinity ? 1 : scale;
+
+  initY(columnNodes, innerH, nodePad, safeScale);
+
+  // Iterative relaxation
+  for (let iter = 0; iter < iters; iter++) {
+    relaxTopDown(columnNodes, nodePad);
+    relaxBottomUp(columnNodes, nodePad);
+  }
+
+  assignLinkY(nodes, safeScale);
+
+  return { nodes, links };
 }
+
+// ── React component ───────────────────────────────────────────────────────────
 
 function VisitorFlowSankey({
   funnel,
@@ -236,9 +383,18 @@ function VisitorFlowSankey({
   funnel: FunnelStep[];
   scoreDistribution: DistributionBucket[];
 }) {
-  const result = buildCustomSankey(funnel, scoreDistribution);
+  const SVG_W  = 720;
+  const SVG_H  = 480;
+  const ML = 5, MR = 175, MT = 16, MB = 36;
+  const innerW = SVG_W - ML - MR;
+  const innerH = SVG_H - MT - MB;
+  const NODE_W  = 14;
+  const NODE_PAD = 10;
+  const ITERS   = 8;
 
-  if (!result || result.links.length === 0) {
+  const result = buildSankey(funnel, scoreDistribution, innerW, innerH, NODE_W, NODE_PAD, ITERS);
+
+  if (!result) {
     return (
       <p className="text-sm text-muted-foreground text-center py-8">
         No data yet. Share the link and come back when participants start taking the test!
@@ -247,80 +403,87 @@ function VisitorFlowSankey({
   }
 
   const { nodes, links } = result;
-  const mainNodes   = nodes.filter((n) => n.id.startsWith("stage-"));
-  const bucketNodes = nodes.filter((n) => n.id.startsWith("bucket-"));
+
+  const stageNodes  = nodes.filter((n) => n.id.startsWith("s"));
+  const bucketNodes = nodes.filter((n) => n.id.startsWith("b_"));
   const dropNode    = nodes.find((n) => n.id === "dropout");
 
-  const innerH  = _SVG_H - _MARGIN.top - _MARGIN.bottom;
-  const upperH  = innerH * 0.62;
-  const labelY  = upperH + 6; // label row sits just below the flow bars
-
   return (
-    <div style={{ width: "100%", height: _SVG_H }}>
+    <div style={{ width: "100%", overflowX: "auto" }}>
       <svg
-        viewBox={`0 0 ${_SVG_W} ${_SVG_H}`}
-        style={{ width: "100%", height: "100%" }}
+        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+        style={{ width: "100%", height: "auto", minHeight: 240 }}
         preserveAspectRatio="xMidYMid meet"
       >
-        <g transform={`translate(${_MARGIN.left},${_MARGIN.top})`}>
+        <g transform={`translate(${ML},${MT})`}>
           {/* Links — drawn behind nodes */}
-          {links.map((link, i) => {
-            const cp   = (link.targetX - link.sourceX) / 2;
-            const half = link.w / 2;
-            return (
-              <path
-                key={i}
-                d={[
-                  `M${link.sourceX},${link.sourceY - half}`,
-                  `C${link.sourceX + cp},${link.sourceY - half}`,
-                  `${link.targetX - cp},${link.targetY - half}`,
-                  `${link.targetX},${link.targetY - half}`,
-                  `L${link.targetX},${link.targetY + half}`,
-                  `C${link.targetX - cp},${link.targetY + half}`,
-                  `${link.sourceX + cp},${link.sourceY + half}`,
-                  `${link.sourceX},${link.sourceY + half} Z`,
-                ].join(" ")}
-                fill={link.color}
-                fillOpacity={0.25}
-              />
-            );
-          })}
+          {links.map((link, i) => (
+            <path
+              key={i}
+              d={sankeyPath(link)}
+              fill={link.color}
+              fillOpacity={0.25}
+              stroke="none"
+            />
+          ))}
 
-          {/* Main flow nodes — labels below the flow area */}
-          {mainNodes.map((node) => (
-            <g key={node.id}>
-              <rect x={node.x} y={node.y} width={_NODE_W} height={node.h} fill={node.color} fillOpacity={0.9} rx={2} />
-              <text x={node.x + _NODE_W / 2} y={labelY} textAnchor="middle"
-                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}>
-                {node.label}
+          {/* Stage nodes — labels below */}
+          {stageNodes.map((n) => (
+            <g key={n.id}>
+              <rect
+                x={n.x0} y={n.y0}
+                width={n.x1 - n.x0} height={Math.max(n.y1 - n.y0, 2)}
+                fill={n.color} fillOpacity={0.9} rx={2}
+              />
+              <text
+                x={(n.x0 + n.x1) / 2} y={innerH + 8}
+                textAnchor="middle"
+                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}
+              >
+                {n.label}
               </text>
-              <text x={node.x + _NODE_W / 2} y={labelY + 13} textAnchor="middle"
-                style={{ fontSize: "9px", fill: "#6b7280", fontFamily: "inherit" }}>
-                {node.count.toLocaleString()}
+              <text
+                x={(n.x0 + n.x1) / 2} y={innerH + 20}
+                textAnchor="middle"
+                style={{ fontSize: "9px", fill: "#6b7280", fontFamily: "inherit" }}
+              >
+                {n.value.toLocaleString()}
               </text>
             </g>
           ))}
 
           {/* Score bucket nodes — labels to the right */}
-          {bucketNodes.map((node) => (
-            <g key={node.id}>
-              <rect x={node.x} y={node.y} width={_NODE_W} height={node.h} fill={node.color} fillOpacity={0.9} rx={2} />
-              <text x={node.x + _NODE_W + 5} y={node.y + node.h / 2}
+          {bucketNodes.map((n) => (
+            <g key={n.id}>
+              <rect
+                x={n.x0} y={n.y0}
+                width={n.x1 - n.x0} height={Math.max(n.y1 - n.y0, 2)}
+                fill={n.color} fillOpacity={0.9} rx={2}
+              />
+              <text
+                x={n.x1 + 5} y={(n.y0 + n.y1) / 2}
                 textAnchor="start" dominantBaseline="middle"
-                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}>
-                {node.label} ({node.count.toLocaleString()})
+                style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}
+              >
+                {n.label} ({n.value.toLocaleString()})
               </text>
             </g>
           ))}
 
-          {/* Single dropout sink — label to the right */}
+          {/* Single dropout sink — label to the right in red */}
           {dropNode && (
             <g>
-              <rect x={dropNode.x} y={dropNode.y} width={_NODE_W} height={dropNode.h} fill={dropNode.color} fillOpacity={0.9} rx={2} />
-              <text x={dropNode.x + _NODE_W + 5} y={dropNode.y + dropNode.h / 2}
+              <rect
+                x={dropNode.x0} y={dropNode.y0}
+                width={dropNode.x1 - dropNode.x0} height={Math.max(dropNode.y1 - dropNode.y0, 2)}
+                fill={dropNode.color} fillOpacity={0.9} rx={2}
+              />
+              <text
+                x={dropNode.x1 + 5} y={(dropNode.y0 + dropNode.y1) / 2}
                 textAnchor="start" dominantBaseline="middle"
-                style={{ fontSize: "10px", fill: "#f87171", fontFamily: "inherit" }}>
-                {dropNode.label} ({dropNode.count.toLocaleString()})
+                style={{ fontSize: "10px", fill: "#f87171", fontFamily: "inherit" }}
+              >
+                {dropNode.label} ({dropNode.value.toLocaleString()})
               </text>
             </g>
           )}
