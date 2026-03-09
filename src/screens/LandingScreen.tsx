@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, Trophy } from "lucide-react";
+import { Github, Trophy, BarChart2 } from "lucide-react";
 import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
@@ -10,9 +10,11 @@ interface LandingScreenProps {
   onContinue: () => void;
   onStartOver: () => void;
   onViewScoreboard: () => void;
+  onViewStats?: () => void;
+  isReturningVisitor?: boolean;
 }
 
-export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, onViewScoreboard }: LandingScreenProps) {
+export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, onViewScoreboard, onViewStats, isReturningVisitor }: LandingScreenProps) {
   const [giveUpCount, setGiveUpCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -70,6 +72,11 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, o
             <p className="text-xs text-muted-foreground text-center">
               ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
             </p>
+            {isReturningVisitor && !hasProgress && (
+              <p className="text-xs text-primary/80 text-center bg-primary/5 rounded-md px-3 py-2">
+                Welcome back! Your survey answers are saved — you'll go straight to the tests.
+              </p>
+            )}
             {hasProgress ? (
               <>
                 <Button className="w-full" size="lg" onClick={onContinue}>
@@ -88,6 +95,12 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, o
               <Trophy className="h-4 w-4" />
               Scoreboard
             </Button>
+            {onViewStats && (
+              <Button className="w-full gap-2" size="sm" variant="ghost" onClick={onViewStats}>
+                <BarChart2 className="h-4 w-4" />
+                Human Behaviour Stats
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </div>

@@ -1,6 +1,9 @@
 import { serve } from "bun";
 import index from "./index.html";
 import giveUpCounter from "../api/giveupcounter";
+import session from "../api/session";
+import testSession from "../api/test-session";
+import stats from "../api/stats";
 
 const server = serve({
   routes: {
@@ -8,6 +11,9 @@ const server = serve({
     "/*": index,
 
     "/api/giveupcounter": giveUpCounter,
+    "/api/session": session,
+    "/api/test-session": testSession,
+    "/api/stats": stats,
 
     "/api/hello": {
       async GET(req) {

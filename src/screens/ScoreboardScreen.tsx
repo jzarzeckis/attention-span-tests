@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { getVisitorId } from "@/utils/visitorId";
 
 interface LeaderboardEntry {
   name: string;
   score: number;
+  isMine: boolean;
 }
 
 interface Tier {
@@ -30,9 +32,6 @@ const TIERS: Tier[] = [
   { min: 0, max: 10, badge: "NPC of the Algorithm", variant: "destructive" },
 ];
 
-function getTierForScore(score: number): Tier {
-  return TIERS.find((t) => score >= t.min && score <= t.max) ?? TIERS[TIERS.length - 1]!;
-}
 
 function TierCard({
   tier,
@@ -46,12 +45,13 @@ function TierCard({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const hasMine = entries.some((e) => e.isMine);
 
   if (entries.length === 0) return null;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card>
+      <Card className={hasMine ? "ring-1 ring-primary/40" : ""}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer select-none py-3 px-4 hover:bg-muted/30 rounded-t-xl transition-colors">
             <div className="flex items-center justify-between">
@@ -73,13 +73,19 @@ function TierCard({
               {entries.map((entry, idx) => {
                 const rank = globalOffset + idx + 1;
                 return (
-                  <div key={`${entry.name}-${idx}`} className="flex items-center justify-between py-2">
+                  <div
+                    key={`${entry.name}-${idx}`}
+                    className={`flex items-center justify-between py-2 ${entry.isMine ? "text-primary font-semibold" : ""}`}
+                  >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className={`text-xs font-mono font-bold tabular-nums shrink-0 w-6 text-right ${rank <= 3 ? "text-amber-500" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-mono font-bold tabular-nums shrink-0 w-6 text-right ${rank <= 3 ? "text-amber-500" : entry.isMine ? "text-primary" : "text-muted-foreground"}`}>
                         #{rank}
                       </span>
                       {rank === 1 && <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                       <span className="text-sm font-medium truncate">{entry.name}</span>
+                      {entry.isMine && (
+                        <span className="text-xs text-primary/70 shrink-0">(you)</span>
+                      )}
                     </div>
                     <span className="text-sm font-bold tabular-nums ml-4 shrink-0">{entry.score}</span>
                   </div>
@@ -106,7 +112,11 @@ export function ScoreboardScreen({ onBack }: ScoreboardScreenProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/leaderboard");
+      const visitorId = getVisitorId();
+      const url = visitorId
+        ? `/api/leaderboard?visitor_id=${encodeURIComponent(visitorId)}`
+        : "/api/leaderboard";
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to load leaderboard");
       const data = await res.json() as LeaderboardEntry[];
       setEntries(data);
@@ -186,7 +196,7 @@ export function ScoreboardScreen({ onBack }: ScoreboardScreenProps) {
 
         {!loading && !error && entries.length > 0 && (
           <div className="space-y-2">
-            {tiersWithOffset.map((group, i) => (
+            {tiersWithOffset.map((group) => (
               <TierCard
                 key={group.tier.badge}
                 tier={group.tier}

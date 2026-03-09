@@ -2,12 +2,13 @@ import "./index.css";
 import { useState, useCallback, useEffect } from "react";
 import { Share2, Link, Palette } from "lucide-react";
 import { toast } from "sonner";
-import { type Screen, TEST_LIST } from "@/types";
+import { type Screen, type SelfReportData, TEST_LIST } from "@/types";
 import { LandingScreen } from "@/screens/LandingScreen";
 import { QuestionnaireScreen } from "@/screens/QuestionnaireScreen";
 import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen, calculateScores, compositeScore, getRank } from "@/screens/ResultsScreen";
 import { ScoreboardScreen } from "@/screens/ScoreboardScreen";
+import { StatsScreen } from "@/screens/StatsScreen";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +16,7 @@ import { generateScoreImage, buildShareUrl, hasAnyTestResults, countCompletedTes
 import { resultsStore } from "@/utils/resultsStore";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { THEMES, type ThemeId } from "@/themes";
+import { getOrCreateVisitorId } from "@/utils/visitorId";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -45,6 +47,11 @@ function initTheme(): ThemeId {
 }
 
 function initScreen(): Screen {
+  // Stats page: /stats path
+  if (window.location.pathname === "/stats") {
+    return { type: "stats" };
+  }
+
   const params = new URLSearchParams(window.location.search);
 
   // Dev shortcut: ?devStart=N
@@ -213,6 +220,36 @@ function ShareFAB() {
 
 function AppInner() {
   const [screen, setScreen] = useState<Screen>(initScreen);
+  // null = not yet checked, undefined = no survey, object = has survey
+  const [returningSurvey, setReturningSurvey] = useState<SelfReportData | null | undefined>(null);
+
+  // On mount: register visitor UUID cookie and check if they've done the survey before
+  useEffect(() => {
+    const visitorId = getOrCreateVisitorId();
+
+    // Register visitor in DB (fire and forget)
+    fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "register", visitorId }),
+    }).catch(() => {});
+
+    // Check if they have survey data from a previous session
+    fetch(`/api/session?visitor_id=${encodeURIComponent(visitorId)}`)
+      .then((r) => r.json())
+      .then((data: { hasSurvey: boolean; surveyData?: SelfReportData }) => {
+        if (data.hasSurvey && data.surveyData) {
+          setReturningSurvey(data.surveyData);
+          // Pre-populate results store so they skip the questionnaire
+          resultsStore.setItem("selfReport", data.surveyData);
+        } else {
+          setReturningSurvey(undefined);
+        }
+      })
+      .catch(() => {
+        setReturningSurvey(undefined);
+      });
+  }, []);
 
   // Dev escape hatch: window.__devGoToTest(index) jumps to a test without reload
   useEffect(() => {
@@ -223,10 +260,25 @@ function AppInner() {
     }
   }, []);
 
-  const handleStart = () => setScreen({ type: "questionnaire" });
+  const handleStart = () => {
+    // If returning visitor with survey data, skip questionnaire
+    if (returningSurvey) {
+      setScreen({ type: "test", testIndex: 0 });
+    } else {
+      setScreen({ type: "questionnaire" });
+    }
+  };
 
-  const handleQuestionnaireComplete = () => {
-    fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
+  const handleQuestionnaireComplete = (data?: SelfReportData) => {
+    if (data) {
+      // Persist survey data to DB
+      const visitorId = getOrCreateVisitorId();
+      fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "survey", visitorId, surveyData: data }),
+      }).catch(() => {});
+    }
     setScreen({ type: "test", testIndex: 0 });
   };
 
@@ -264,6 +316,9 @@ function AppInner() {
     }
   };
 
+  const handleViewStats = () => setScreen({ type: "stats" });
+  const handleBackFromStats = () => setScreen({ type: "landing" });
+
   return (
     <>
       {screen.type === "landing" && (
@@ -273,10 +328,12 @@ function AppInner() {
           onContinue={handleContinue}
           onStartOver={handleRestart}
           onViewScoreboard={handleViewScoreboardFromLanding}
+          onViewStats={handleViewStats}
+          isReturningVisitor={!!returningSurvey}
         />
       )}
       {screen.type === "questionnaire" && (
-        <QuestionnaireScreen onComplete={handleQuestionnaireComplete} onSkip={handleQuestionnaireComplete} />
+        <QuestionnaireScreen onComplete={handleQuestionnaireComplete} onSkip={() => handleQuestionnaireComplete()} />
       )}
       {screen.type === "test" && (
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
@@ -286,6 +343,9 @@ function AppInner() {
       )}
       {screen.type === "scoreboard" && (
         <ScoreboardScreen onBack={handleBackFromScoreboard} />
+      )}
+      {screen.type === "stats" && (
+        <StatsScreen onBack={handleBackFromStats} />
       )}
       <ThemePicker />
       {screen.type !== "test" && <ShareFAB />}
