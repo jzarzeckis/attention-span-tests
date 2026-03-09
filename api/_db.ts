@@ -71,5 +71,12 @@ export async function ensureLeaderboardTable(sql: NeonQueryFunction<false, false
   await sql`
     ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS visitor_uuid TEXT
   `;
+  // Partial unique index so each visitor can only have one leaderboard entry.
+  // NULL values are excluded so anonymous submissions (no cookie) are still allowed.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS leaderboard_visitor_uuid_unique
+    ON leaderboard (visitor_uuid)
+    WHERE visitor_uuid IS NOT NULL
+  `;
   leaderboardInitialized = true;
 }

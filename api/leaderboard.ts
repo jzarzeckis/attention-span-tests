@@ -61,6 +61,8 @@ export default async function handler(req: Request): Promise<Response> {
     await sql`
       INSERT INTO leaderboard (name, score, visitor_uuid)
       VALUES (${sanitizedName}, ${roundedScore}, ${safeVisitorId})
+      ON CONFLICT (visitor_uuid) WHERE visitor_uuid IS NOT NULL
+      DO UPDATE SET name = EXCLUDED.name, score = EXCLUDED.score, created_at = NOW()
     `;
 
     // Keep only top MAX_ENTRIES by score (remove lowest scores when over limit)
