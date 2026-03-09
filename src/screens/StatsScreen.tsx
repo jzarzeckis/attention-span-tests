@@ -683,7 +683,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
             Back
           </Button>
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Human Behaviour Data</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Stats</h1>
             <p className="text-muted-foreground text-sm max-w-lg mx-auto">
               Aggregated results from all visitors — anonymised, cross-referenced with demographics.
               A live study of attention in the age of short-form content.

@@ -99,7 +99,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, i
             <Button asChild className="w-full gap-2" size="sm" variant="ghost">
               <Link href="/stats">
                 <BarChart2 className="h-4 w-4" />
-                Human Behaviour Stats
+                Stats
               </Link>
             </Button>
           </CardFooter>
