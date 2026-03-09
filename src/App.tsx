@@ -55,6 +55,15 @@ function initScreen(): Screen {
     }
   }
 
+  // Fake score: ?fakeScore=N
+  const fakeScoreParam = params.get("fakeScore");
+  if (fakeScoreParam !== null) {
+    const n = parseInt(fakeScoreParam, 10);
+    if (!isNaN(n) && n >= 0 && n <= 100) {
+      return { type: "results", fakeScore: n };
+    }
+  }
+
   // Shared results: ?r=BASE64
   const rParam = params.get("r");
   if (rParam) {
@@ -271,7 +280,7 @@ function AppInner() {
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
       )}
       {screen.type === "results" && (
-        <ResultsScreen onRestart={handleRestart} onViewScoreboard={handleViewScoreboard} isShared={!!screen.isShared} />
+        <ResultsScreen onRestart={handleRestart} onViewScoreboard={handleViewScoreboard} isShared={!!screen.isShared} fakeScore={screen.fakeScore} />
       )}
       {screen.type === "scoreboard" && (
         <ScoreboardScreen onBack={handleBackFromScoreboard} />
