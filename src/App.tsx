@@ -263,7 +263,6 @@ function AppInner() {
   const handleStart = () => {
     // If returning visitor with survey data, skip questionnaire
     if (returningSurvey) {
-      fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
       setScreen({ type: "test", testIndex: 0 });
     } else {
       setScreen({ type: "questionnaire" });
@@ -280,7 +279,6 @@ function AppInner() {
         body: JSON.stringify({ action: "survey", visitorId, surveyData: data }),
       }).catch(() => {});
     }
-    fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
     setScreen({ type: "test", testIndex: 0 });
   };
 

@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -18,48 +18,38 @@ async function getDb() {
   return neon(databaseUrl);
 }
 
-async function ensureTable(sql: NeonQueryFunction<false, false>) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS give_ups (
-      id INTEGER PRIMARY KEY DEFAULT 1,
-      count INTEGER NOT NULL DEFAULT 0
-    )
-  `;
-  await sql`
-    INSERT INTO give_ups (id, count) VALUES (1, 0)
-    ON CONFLICT (id) DO NOTHING
-  `;
-}
-
 export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, DELETE" },
+      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET" },
     });
+  }
+
+  if (req.method !== "GET") {
+    return json({ error: "Method not allowed" }, 405);
   }
 
   const sql = await getDb();
   if (!sql) {
-    return json({ error: "Database not configured" }, 503);
+    return json({ count: 0 });
   }
 
-  await ensureTable(sql);
+  // "Give ups" = visitors who started at least one test but did not finish the final test (gonogo).
+  // This reuses the test_sessions table rather than maintaining a separate counter.
+  const [startedRow, finishedRow] = await Promise.all([
+    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions`,
+    sql`
+      SELECT COUNT(DISTINCT visitor_uuid) AS count
+      FROM test_sessions
+      WHERE test_id = 'gonogo' AND finished_at IS NOT NULL AND skipped = FALSE
+    `,
+  ]).catch(() => [null, null]);
 
-  if (req.method === "GET") {
-    const rows = await sql`SELECT count FROM give_ups WHERE id = 1`;
-    const count = rows[0] ? Number(rows[0].count) : 0;
-    return json({ count });
+  if (!startedRow || !finishedRow) {
+    return json({ count: 0 });
   }
 
-  if (req.method === "POST") {
-    await sql`UPDATE give_ups SET count = count + 1 WHERE id = 1`;
-    return json({ success: true });
-  }
-
-  if (req.method === "DELETE") {
-    await sql`UPDATE give_ups SET count = GREATEST(count - 1, 0) WHERE id = 1`;
-    return json({ success: true });
-  }
-
-  return json({ error: "Method not allowed" }, 405);
+  const started = Number(startedRow[0]?.count ?? 0);
+  const finished = Number(finishedRow[0]?.count ?? 0);
+  return json({ count: Math.max(0, started - finished) });
 }

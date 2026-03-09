@@ -72,9 +72,6 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     if (doneRef.current) return;
     doneRef.current = true;
     completedRef.current = true;
-    if (isLastTest) {
-      fetch("/api/giveupcounter", { method: "DELETE" }).catch(() => {});
-    }
     // Track test finish with results
     if (test?.id) {
       const results = resultsStore.getItem(test.id);
@@ -85,7 +82,7 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
       });
     }
     onNext();
-  }, [onNext, isLastTest, test?.id]);
+  }, [onNext, test?.id]);
 
   const handleSkip = () => {
     const testId = test?.id;
