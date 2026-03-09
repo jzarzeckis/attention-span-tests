@@ -12,6 +12,7 @@ interface ResultsScreenProps {
   onRestart: () => void;
   onViewScoreboard: () => void;
   isShared?: boolean;
+  fakeScore?: number;
 }
 
 function LeaderboardSubmit({ score }: { score: number }) {
@@ -588,12 +589,13 @@ function TestDetailCard({ detail }: { detail: TestDetail }) {
   );
 }
 
-export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }: ResultsScreenProps) {
+export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false, fakeScore }: ResultsScreenProps) {
   const scores = calculateScores();
-  const composite = compositeScore(scores);
-  const details = buildDetails(scores);
-  const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
-  const selfReport = resultsStore.getItem("selfReport");
+  const realComposite = compositeScore(scores);
+  const composite = fakeScore !== undefined ? fakeScore : realComposite;
+  const details = fakeScore !== undefined ? [] : buildDetails(scores);
+  const testsCompleted = fakeScore !== undefined ? 4 : Object.values(scores).filter((v) => v !== null).length;
+  const selfReport = fakeScore !== undefined ? null : resultsStore.getItem("selfReport");
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center pt-16 px-4 pb-24">
@@ -670,10 +672,15 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
           </CardContent>
 
           <CardFooter className="flex-col gap-3">
-            {composite !== null && !isShared && testsCompleted === 4 && (
+            {fakeScore !== undefined && (
+              <p className="text-xs text-muted-foreground text-center">
+                This is a preview score — leaderboard submission is disabled.
+              </p>
+            )}
+            {composite !== null && !isShared && fakeScore === undefined && testsCompleted === 4 && (
               <LeaderboardSubmit score={composite} />
             )}
-            {composite !== null && !isShared && testsCompleted < 4 && (
+            {composite !== null && !isShared && fakeScore === undefined && testsCompleted < 4 && (
               <p className="text-xs text-muted-foreground text-center">
                 Complete all 4 tests (no skipping) to submit your score to the leaderboard.
               </p>

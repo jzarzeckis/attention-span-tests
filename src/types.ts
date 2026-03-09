@@ -11,7 +11,7 @@ export type Screen =
   | { type: "landing" }
   | { type: "questionnaire" }
   | { type: "test"; testIndex: number }
-  | { type: "results"; isShared?: boolean }
+  | { type: "results"; isShared?: boolean; fakeScore?: number }
   | { type: "scoreboard" };
 
 // ── Result types ────────────────────────────────────────────────────────────
