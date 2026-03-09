@@ -5,8 +5,10 @@
       "mcp__plugin_playwright_playwright",
       "mcp__Playwright",
       "Bash(bunx tsc:*)",
+      "Bash(bun test:*)",
       "Bash(curl:*)",
-      "Bash(rsvg-convert:*)"
+      "Bash(rsvg-convert:*)",
+      "WebFetch"
     ]
   }
 }

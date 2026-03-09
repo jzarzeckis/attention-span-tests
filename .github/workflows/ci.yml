@@ -17,5 +17,8 @@ jobs:
       - name: TypeScript
         run: bunx tsc --noEmit
 
+      - name: Tests
+        run: bun test
+
       - name: Build
         run: bun build src/index.html --outdir dist
