@@ -254,8 +254,15 @@ function AppInner() {
     setScreen({ type: "landing" });
   };
 
-  const handleViewScoreboard = () => setScreen({ type: "scoreboard" });
-  const handleBackFromScoreboard = () => setScreen({ type: "results" });
+  const handleViewScoreboard = () => setScreen({ type: "scoreboard", from: "results" });
+  const handleViewScoreboardFromLanding = () => setScreen({ type: "scoreboard", from: "landing" });
+  const handleBackFromScoreboard = () => {
+    if (screen.type === "scoreboard" && screen.from === "landing") {
+      setScreen({ type: "landing" });
+    } else {
+      setScreen({ type: "results" });
+    }
+  };
 
   return (
     <>
@@ -265,6 +272,7 @@ function AppInner() {
           hasProgress={hasAnyProgress()}
           onContinue={handleContinue}
           onStartOver={handleRestart}
+          onViewScoreboard={handleViewScoreboardFromLanding}
         />
       )}
       {screen.type === "questionnaire" && (

@@ -12,7 +12,7 @@ export type Screen =
   | { type: "questionnaire" }
   | { type: "test"; testIndex: number }
   | { type: "results"; isShared?: boolean }
-  | { type: "scoreboard" };
+  | { type: "scoreboard"; from?: "landing" | "results" };
 
 // ── Result types ────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github } from "lucide-react";
+import { Github, Trophy } from "lucide-react";
 import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
@@ -9,9 +9,10 @@ interface LandingScreenProps {
   hasProgress: boolean;
   onContinue: () => void;
   onStartOver: () => void;
+  onViewScoreboard: () => void;
 }
 
-export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }: LandingScreenProps) {
+export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, onViewScoreboard }: LandingScreenProps) {
   const [giveUpCount, setGiveUpCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -83,6 +84,10 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
                 Check my brainrot
               </Button>
             )}
+            <Button className="w-full gap-2" size="sm" variant="ghost" onClick={onViewScoreboard}>
+              <Trophy className="h-4 w-4" />
+              Scoreboard
+            </Button>
           </CardFooter>
         </Card>
       </div>
