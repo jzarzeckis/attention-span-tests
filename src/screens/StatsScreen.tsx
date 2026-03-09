@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Users, ClipboardList, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sankey,
   ScatterChart,
   Scatter,
   XAxis,
@@ -15,6 +14,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
+import { sankey as d3Sankey, sankeyLinkHorizontal, type SankeyNode, type SankeyLink } from "d3-sankey";
 
 interface StatsScreenProps {
   onBack: () => void;
@@ -58,7 +58,7 @@ interface StatsData {
   totalSurveys: number;
 }
 
-// ── Sankey Diagram ────────────────────────────────────────────────────────────
+// ── Sankey Diagram (D3) ──────────────────────────────────────────────────────
 
 const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "0–9":   "NPC of the Algorithm",
@@ -73,22 +73,22 @@ const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
   "90–99": "Functional Human",
 };
 
-interface SankeyNodeData {
+interface SNodeExtra {
   name: string;
   color: string;
 }
 
-interface SankeyLinkData {
-  source: number;
-  target: number;
-  value: number;
+interface SLinkExtra {
   isDropout: boolean;
 }
+
+type SNode = SankeyNode<SNodeExtra, SLinkExtra>;
+type SLink = SankeyLink<SNodeExtra, SLinkExtra>;
 
 function buildSankeyData(
   funnel: FunnelStep[],
   scoreDistribution: DistributionBucket[],
-): { nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null {
+): { nodes: SNodeExtra[]; links: Array<{ source: number; target: number; value: number; isDropout: boolean }> } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
   const visited = funnelMap["Visited"] ?? 0;
   const surveyDone = funnelMap["Survey done"] ?? 0;
@@ -99,7 +99,7 @@ function buildSankeyData(
 
   if (visited === 0) return null;
 
-  const nodes: SankeyNodeData[] = [
+  const nodes: SNodeExtra[] = [
     { name: "Visitors", color: "#818cf8" },      // 0
     { name: "Survey Done", color: "#818cf8" },   // 1
     { name: "Stroop Done", color: "#818cf8" },   // 2
@@ -117,7 +117,7 @@ function buildSankeyData(
     nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
   }
 
-  const links: SankeyLinkData[] = [];
+  const links: Array<{ source: number; target: number; value: number; isDropout: boolean }> = [];
   const add = (s: number, t: number, v: number, drop = false) => {
     if (v > 0) links.push({ source: s, target: t, value: v, isDropout: drop });
   };
@@ -142,86 +142,6 @@ function buildSankeyData(
   return { nodes, links };
 }
 
-function SankeyNodeShape(props: {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  payload?: SankeyNodeData & { value?: number };
-}) {
-  const { x = 0, y = 0, width = 10, height = 0, payload } = props;
-  if (!payload || height === 0) return null;
-  const fill = payload.color ?? "#818cf8";
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.9} rx={2} />
-      <text
-        x={x + width + 6}
-        y={y + height / 2}
-        textAnchor="start"
-        dominantBaseline="middle"
-        style={{ fontSize: "11px", fill: "#9ca3af", fontFamily: "inherit" }}
-      >
-        {payload.name}
-        {payload.value != null ? ` (${payload.value.toLocaleString()})` : ""}
-      </text>
-    </g>
-  );
-}
-
-function SankeyLinkShape(props: {
-  sourceX?: number;
-  targetX?: number;
-  sourceY?: number;
-  targetY?: number;
-  sourceControlX?: number;
-  targetControlX?: number;
-  linkWidth?: number;
-  payload?: SankeyLinkData;
-}) {
-  const {
-    sourceX = 0,
-    targetX = 0,
-    sourceY = 0,
-    targetY = 0,
-    sourceControlX = 0,
-    targetControlX = 0,
-    linkWidth = 0,
-    payload,
-  } = props;
-  if (linkWidth === 0) return null;
-  const isDropout = payload?.isDropout === true;
-  const fill = isDropout ? "#f87171" : "#818cf8";
-  const half = linkWidth / 2;
-  return (
-    <path
-      d={`M${sourceX},${sourceY + half}
-          C${sourceControlX},${sourceY + half}
-           ${targetControlX},${targetY + half}
-           ${targetX},${targetY + half}
-          L${targetX},${targetY - half}
-          C${targetControlX},${targetY - half}
-           ${sourceControlX},${sourceY - half}
-           ${sourceX},${sourceY - half}
-          Z`}
-      fill={fill}
-      fillOpacity={0.25}
-    />
-  );
-}
-
-function SankeyTooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name?: string; value?: number } }> }) {
-  if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload;
-  if (!item) return null;
-  return (
-    <div className="bg-background border rounded px-2 py-1 text-xs shadow-md">
-      {item.name && <div className="font-medium">{item.name}</div>}
-      {item.value != null && <div>Count: {item.value.toLocaleString()}</div>}
-    </div>
-  );
-}
-
 function VisitorFlowSankey({
   funnel,
   scoreDistribution,
@@ -229,6 +149,22 @@ function VisitorFlowSankey({
   funnel: FunnelStep[];
   scoreDistribution: DistributionBucket[];
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ width: 600, height: 440 });
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string; sub: string } | null>(null);
+
+  // Responsive sizing
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width } = entries[0]!.contentRect;
+      if (width > 0) setDims({ width, height: 440 });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const data = buildSankeyData(funnel, scoreDistribution);
 
   if (!data || data.links.length === 0) {
@@ -239,22 +175,117 @@ function VisitorFlowSankey({
     );
   }
 
+  const margin = { top: 10, right: 180, bottom: 10, left: 10 };
+  const innerW = dims.width - margin.left - margin.right;
+  const innerH = dims.height - margin.top - margin.bottom;
+
+  // Run d3-sankey layout
+  const layout = d3Sankey<SNodeExtra, SLinkExtra>()
+    .nodeWidth(14)
+    .nodePadding(14)
+    .nodeAlign((node) => node.depth ?? 0)
+    .extent([[0, 0], [innerW, innerH]]);
+
+  const graph = layout({
+    nodes: data.nodes.map((n) => ({ ...n })),
+    links: data.links.map((l) => ({ ...l })),
+  });
+
+  const linkPath = sankeyLinkHorizontal();
+
   return (
-    <div style={{ width: "100%", height: 440 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <Sankey
-          data={data}
-          nodePadding={14}
-          nodeWidth={16}
-          linkCurvature={0.5}
-          iterations={64}
-          node={<SankeyNodeShape />}
-          link={<SankeyLinkShape />}
-          margin={{ top: 10, right: 150, bottom: 10, left: 10 }}
+    <div ref={containerRef} style={{ width: "100%", height: dims.height, position: "relative" }}>
+      <svg width={dims.width} height={dims.height}>
+        <g transform={`translate(${margin.left},${margin.top})`}>
+          {/* Links */}
+          {graph.links.map((link, i) => {
+            const isDropout = (link as SLink & SLinkExtra).isDropout === true;
+            const fill = isDropout ? "#f87171" : "#818cf8";
+            return (
+              <path
+                key={i}
+                d={linkPath(link as any) ?? ""}
+                fill="none"
+                stroke={fill}
+                strokeOpacity={0.3}
+                strokeWidth={Math.max(1, link.width ?? 0)}
+                onMouseEnter={(e) => {
+                  const src = link.source as SNode;
+                  const tgt = link.target as SNode;
+                  setTooltip({
+                    x: e.clientX,
+                    y: e.clientY,
+                    text: `${src.name} → ${tgt.name}`,
+                    sub: `${(link.value ?? 0).toLocaleString()} visitors`,
+                  });
+                }}
+                onMouseMove={(e) => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                onMouseLeave={() => setTooltip(null)}
+                style={{ cursor: "default" }}
+              />
+            );
+          })}
+
+          {/* Nodes */}
+          {graph.nodes.map((node, i) => {
+            const x0 = node.x0 ?? 0;
+            const y0 = node.y0 ?? 0;
+            const x1 = node.x1 ?? 0;
+            const y1 = node.y1 ?? 0;
+            const h = y1 - y0;
+            if (h === 0) return null;
+            const label = `${node.name} (${(node.value ?? 0).toLocaleString()})`;
+            return (
+              <g key={i}>
+                <rect
+                  x={x0}
+                  y={y0}
+                  width={x1 - x0}
+                  height={h}
+                  fill={node.color}
+                  fillOpacity={0.9}
+                  rx={2}
+                  onMouseEnter={(e) =>
+                    setTooltip({
+                      x: e.clientX,
+                      y: e.clientY,
+                      text: node.name,
+                      sub: `${(node.value ?? 0).toLocaleString()} visitors`,
+                    })
+                  }
+                  onMouseMove={(e) => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                  onMouseLeave={() => setTooltip(null)}
+                  style={{ cursor: "default" }}
+                />
+                <text
+                  x={x1 + 6}
+                  y={y0 + h / 2}
+                  textAnchor="start"
+                  dominantBaseline="middle"
+                  style={{ fontSize: "11px", fill: "#9ca3af", fontFamily: "inherit" }}
+                  paintOrder="stroke"
+                  stroke="hsl(var(--background))"
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          className="fixed bg-background border rounded px-2 py-1 text-xs shadow-md pointer-events-none z-50"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
         >
-          <Tooltip content={<SankeyTooltipContent />} />
-        </Sankey>
-      </ResponsiveContainer>
+          <div className="font-medium">{tooltip.text}</div>
+          <div>{tooltip.sub}</div>
+        </div>
+      )}
     </div>
   );
 }
