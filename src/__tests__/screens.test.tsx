@@ -185,20 +185,19 @@ describe("TestScreen", () => {
 
     fireEvent.click(screen.getByText("Skip this test"));
 
-    expect(resultsStore.hasItem("sart")).toBe(true);
-    expect(resultsStore.getItem("sart")).toEqual({ skipped: true });
+    expect(resultsStore.hasItem("stroop")).toBe(true);
+    expect(resultsStore.getItem("stroop")).toEqual({ skipped: true });
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
   test("renders correct test component based on index", () => {
     render(<TestScreen testIndex={0} onNext={jest.fn()} />);
-    // SART title appears both in progress bar and card title
-    expect(screen.getAllByText("Sustained Attention (SART)").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Stroop Color-Word Test")).toBeInTheDocument();
   });
 
-  test("renders Stroop for index 1", () => {
+  test("renders GoNoGo for index 1", () => {
     render(<TestScreen testIndex={1} onNext={jest.fn()} />);
-    expect(screen.getByText("Stroop Color-Word Test")).toBeInTheDocument();
+    expect(screen.getByText("Go/No-Go Task")).toBeInTheDocument();
   });
 
   test("renders PVT for index 2", () => {
@@ -206,9 +205,10 @@ describe("TestScreen", () => {
     expect(screen.getAllByText("Psychomotor Vigilance (PVT)").length).toBeGreaterThanOrEqual(1);
   });
 
-  test("renders GoNoGo for index 3", () => {
+  test("renders SART for index 3", () => {
     render(<TestScreen testIndex={3} onNext={jest.fn()} />);
-    expect(screen.getByText("Go/No-Go Task")).toBeInTheDocument();
+    // SART title appears both in progress bar and card title
+    expect(screen.getAllByText("Sustained Attention (SART)").length).toBeGreaterThanOrEqual(1);
   });
 
   test("shows assistance toggle button", () => {
@@ -217,13 +217,13 @@ describe("TestScreen", () => {
   });
 
   test("skip does not overwrite existing results", () => {
-    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", { condition1: { accuracy: 1, meanRT: 500 }, condition2: { accuracy: 1, meanRT: 500 }, condition3: { accuracy: 1, meanRT: 500 }, interferenceScore: 0 });
     const onNext = jest.fn();
     render(<TestScreen testIndex={0} onNext={onNext} />);
 
     fireEvent.click(screen.getByText("Skip this test"));
     // Should still have original stats, not skipped
-    expect(resultsStore.getItem("sart")).toEqual(goodSart);
+    expect(resultsStore.getItem("stroop")).toEqual({ condition1: { accuracy: 1, meanRT: 500 }, condition2: { accuracy: 1, meanRT: 500 }, condition3: { accuracy: 1, meanRT: 500 }, interferenceScore: 0 });
   });
 });
 
