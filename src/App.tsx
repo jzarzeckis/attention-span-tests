@@ -37,6 +37,26 @@ function hasAnyProgress(): boolean {
   return TEST_LIST.some((test) => resultsStore.hasItem(test.id));
 }
 
+function getScreenPath(screen: Screen): string | null {
+  switch (screen.type) {
+    case "landing": return "/";
+    case "results": return "/results";
+    case "scoreboard": return "/scoreboard";
+    case "stats": return "/stats";
+    default: return null; // questionnaire, test — no URL change (continuous flow)
+  }
+}
+
+function screenFromPath(path: string): Screen | null {
+  switch (path) {
+    case "/scoreboard": return { type: "scoreboard" };
+    case "/stats": return { type: "stats" };
+    case "/results": return { type: "results" };
+    case "/": return { type: "landing" };
+    default: return null;
+  }
+}
+
 function initTheme(): ThemeId {
   const params = new URLSearchParams(window.location.search);
   const themeParam = params.get("theme") as ThemeId | null;
@@ -47,9 +67,14 @@ function initTheme(): ThemeId {
 }
 
 function initScreen(): Screen {
-  // Stats page: /stats path
-  if (window.location.pathname === "/stats") {
-    return { type: "stats" };
+  const path = window.location.pathname;
+
+  if (path === "/stats") return { type: "stats" };
+  if (path === "/scoreboard") return { type: "scoreboard" };
+  if (path === "/results") {
+    // Only show results if there's something stored; otherwise fall back to landing
+    if (hasAnyProgress()) return { type: "results" };
+    return { type: "landing" };
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -223,6 +248,33 @@ function AppInner() {
   // null = not yet checked, undefined = no survey, object = has survey
   const [returningSurvey, setReturningSurvey] = useState<SelfReportData | null | undefined>(null);
 
+  // Navigate to a screen, pushing a new browser history entry for "page" screens
+  const navigate = useCallback((newScreen: Screen) => {
+    const path = getScreenPath(newScreen);
+    if (path !== null && path !== window.location.pathname) {
+      window.history.pushState({}, "", path);
+    }
+    setScreen(newScreen);
+  }, []);
+
+  // Sync URL with initial screen on mount (e.g. /results with no data falls back to /)
+  useEffect(() => {
+    const path = getScreenPath(screen);
+    if (path !== null && path !== window.location.pathname) {
+      window.history.replaceState({}, "", path);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const newScreen = screenFromPath(window.location.pathname);
+      if (newScreen) setScreen(newScreen);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   // On mount: register visitor UUID cookie and check if they've done the survey before
   useEffect(() => {
     const visitorId = getOrCreateVisitorId();
@@ -285,7 +337,7 @@ function AppInner() {
   const handleContinue = () => {
     const resumeIndex = getResumeIndex();
     if (resumeIndex === null) {
-      setScreen({ type: "results" });
+      navigate({ type: "results" });
     } else {
       setScreen({ type: "test", testIndex: resumeIndex });
     }
@@ -295,7 +347,7 @@ function AppInner() {
     if (screen.type !== "test") return;
     const nextIndex = screen.testIndex + 1;
     if (nextIndex >= TEST_LIST.length) {
-      setScreen({ type: "results" });
+      navigate({ type: "results" });
     } else {
       setScreen({ type: "test", testIndex: nextIndex });
     }
@@ -303,21 +355,12 @@ function AppInner() {
 
   const handleRestart = () => {
     resultsStore.clearAll();
+    window.history.pushState({}, "", "/");
     setScreen({ type: "landing" });
   };
 
-  const handleViewScoreboard = () => setScreen({ type: "scoreboard", from: "results" });
-  const handleViewScoreboardFromLanding = () => setScreen({ type: "scoreboard", from: "landing" });
-  const handleBackFromScoreboard = () => {
-    if (screen.type === "scoreboard" && screen.from === "landing") {
-      setScreen({ type: "landing" });
-    } else {
-      setScreen({ type: "results" });
-    }
-  };
-
-  const handleViewStats = () => setScreen({ type: "stats" });
-  const handleBackFromStats = () => setScreen({ type: "landing" });
+  const handleBackFromScoreboard = () => history.back();
+  const handleBackFromStats = () => history.back();
 
   return (
     <>
@@ -327,8 +370,6 @@ function AppInner() {
           hasProgress={hasAnyProgress()}
           onContinue={handleContinue}
           onStartOver={handleRestart}
-          onViewScoreboard={handleViewScoreboardFromLanding}
-          onViewStats={handleViewStats}
           isReturningVisitor={!!returningSurvey}
         />
       )}
@@ -339,7 +380,7 @@ function AppInner() {
         <TestScreen testIndex={screen.testIndex} onNext={handleNext} />
       )}
       {screen.type === "results" && (
-        <ResultsScreen onRestart={handleRestart} onViewScoreboard={handleViewScoreboard} isShared={!!screen.isShared} />
+        <ResultsScreen onRestart={handleRestart} isShared={!!screen.isShared} />
       )}
       {screen.type === "scoreboard" && (
         <ScoreboardScreen onBack={handleBackFromScoreboard} />
