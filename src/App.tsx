@@ -100,7 +100,7 @@ function ThemePicker() {
   );
 }
 
-function ShareFAB({ subtle = false }: { subtle?: boolean }) {
+function ShareFAB() {
   const showFAB = hasAnyTestResults();
   const { theme } = useTheme();
 
@@ -188,40 +188,25 @@ function ShareFAB({ subtle = false }: { subtle?: boolean }) {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2" style={{ bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))" }}>
-      {subtle ? (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="rounded-full h-9 w-9 text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-background/60"
-          onClick={handleShareImage}
-          aria-label="Share results"
-          style={{ touchAction: "manipulation" }}
-        >
-          <Share2 className="h-4 w-4" />
-        </Button>
-      ) : (
-        <>
-          <Button
-            className="rounded-full shadow-lg h-12 px-5 gap-2 font-semibold"
-            onClick={handleShareImage}
-            aria-label="Share score image"
-            style={{ touchAction: "manipulation" }}
-          >
-            <Share2 className="h-5 w-5 shrink-0" />
-            <span className="pointer-events-none">Flex my score</span>
-          </Button>
-          <Button
-            variant="secondary"
-            className="rounded-full shadow-lg h-9 px-4 gap-2 text-sm"
-            onClick={handleShareLink}
-            aria-label="Copy results link"
-            style={{ touchAction: "manipulation" }}
-          >
-            <Link className="h-4 w-4 shrink-0" />
-            <span className="pointer-events-none">Copy results link</span>
-          </Button>
-        </>
-      )}
+      <Button
+        className="rounded-full shadow-lg h-12 px-5 gap-2 font-semibold"
+        onClick={handleShareImage}
+        aria-label="Share score image"
+        style={{ touchAction: "manipulation" }}
+      >
+        <Share2 className="h-5 w-5 shrink-0" />
+        <span className="pointer-events-none">Flex my score</span>
+      </Button>
+      <Button
+        variant="secondary"
+        className="rounded-full shadow-lg h-9 px-4 gap-2 text-sm"
+        onClick={handleShareLink}
+        aria-label="Copy results link"
+        style={{ touchAction: "manipulation" }}
+      >
+        <Link className="h-4 w-4 shrink-0" />
+        <span className="pointer-events-none">Copy results link</span>
+      </Button>
     </div>
   );
 }
@@ -292,7 +277,7 @@ function AppInner() {
         <ScoreboardScreen onBack={handleBackFromScoreboard} />
       )}
       <ThemePicker />
-      <ShareFAB subtle={screen.type === "test"} />
+      {screen.type !== "test" && <ShareFAB />}
       <Toaster position="bottom-center" />
     </>
   );
