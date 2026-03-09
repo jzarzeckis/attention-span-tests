@@ -413,7 +413,7 @@ function AgeVsScoreScatter({ data }: { data: Array<{ age: string; score: number 
   }));
 
   return (
-    <div style={{ width: "100%", height: 240 }}>
+    <div style={{ width: "100%", height: 240 }} className="text-muted-foreground">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -423,14 +423,16 @@ function AgeVsScoreScatter({ data }: { data: Array<{ age: string; score: number 
             domain={[-0.6, 3.6]}
             ticks={[0, 1, 2, 3]}
             tickFormatter={(v: number) => AGE_ORDER[Math.round(v)] ?? ""}
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            label={{ value: "Age group", position: "insideBottom", offset: -15, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "currentColor" }}
+            stroke="currentColor"
+            label={{ value: "Age group", position: "insideBottom", offset: -15, fontSize: 11, fill: "currentColor" }}
           />
           <YAxis
             dataKey="y"
             domain={[0, 100]}
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            label={{ value: "Score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "currentColor" }}
+            stroke="currentColor"
+            label={{ value: "Score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "currentColor" }}
           />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
@@ -478,7 +480,7 @@ function SelfVsScoreScatter({ data }: { data: Array<{ selfRated: number; score: 
   };
 
   return (
-    <div style={{ width: "100%", height: 240 }}>
+    <div style={{ width: "100%", height: 240 }} className="text-muted-foreground">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -488,14 +490,16 @@ function SelfVsScoreScatter({ data }: { data: Array<{ selfRated: number; score: 
             domain={[0.4, 5.6]}
             ticks={[1, 2, 3, 4, 5]}
             tickFormatter={(v: number) => String(Math.round(v))}
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            label={{ value: "Self-rated attention (1–5)", position: "insideBottom", offset: -15, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "currentColor" }}
+            stroke="currentColor"
+            label={{ value: "Self-rated attention (1–5)", position: "insideBottom", offset: -15, fontSize: 11, fill: "currentColor" }}
           />
           <YAxis
             dataKey="y"
             domain={[0, 100]}
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            label={{ value: "Actual score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "currentColor" }}
+            stroke="currentColor"
+            label={{ value: "Actual score", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "currentColor" }}
           />
           <ReferenceLine
             segment={[{ x: 1, y: 10 }, { x: 5, y: 90 }]}
