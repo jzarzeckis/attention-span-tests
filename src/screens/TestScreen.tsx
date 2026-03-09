@@ -53,24 +53,20 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     doneRef.current = false;
     completedRef.current = false;
 
-    const handleBeforeUnload = () => {
-      if (!completedRef.current) {
-        navigator.sendBeacon("/api/giveupcounter");
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    if (testIndex === 0) {
+      fetch("/api/giveupcounter", { method: "POST" }).catch(() => {});
+    }
   }, [testIndex]);
 
   const safeNext = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
     completedRef.current = true;
+    if (isLastTest) {
+      fetch("/api/giveupcounter", { method: "DELETE" }).catch(() => {});
+    }
     onNext();
-  }, [onNext]);
+  }, [onNext, isLastTest]);
 
   const handleSkip = () => {
     const testId = test?.id;

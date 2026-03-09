@@ -62,7 +62,7 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
                   {giveUpCount.toLocaleString()}
                 </p>
                 <p className="text-xs font-medium text-destructive/80 mt-0.5">
-                  of people have given up on this test
+                  people have given up on this test
                 </p>
               </div>
             )}
