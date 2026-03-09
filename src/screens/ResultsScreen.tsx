@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { resultsStore } from "@/utils/resultsStore";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -678,7 +678,8 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
                 Complete all 4 tests (no skipping) to submit your score to the leaderboard.
               </p>
             )}
-            <Button variant="outline" className="w-full" size="sm" onClick={onViewScoreboard}>
+            <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
+              <Trophy className="w-4 h-4" />
               View Scoreboard
             </Button>
             <Button className="w-full" size="lg" onClick={onRestart}>
