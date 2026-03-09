@@ -57,9 +57,14 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver }:
           </CardContent>
           <CardFooter className="flex-col gap-3">
             {giveUpCount !== null && (
-              <p className="text-xs text-muted-foreground/70 text-center">
-                🏳️ <span className="font-semibold">{giveUpCount.toLocaleString()}</span> {giveUpCount === 1 ? "person has" : "people have"} rage-quit this test.
-              </p>
+              <div className="w-full rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-center">
+                <p className="text-2xl font-black text-destructive">
+                  {giveUpCount.toLocaleString()}
+                </p>
+                <p className="text-xs font-medium text-destructive/80 mt-0.5">
+                  of people have given up on this test
+                </p>
+              </div>
             )}
             <p className="text-xs text-muted-foreground text-center">
               ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
