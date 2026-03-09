@@ -38,15 +38,25 @@ function MiniLeaderboard({ userScore, userName, onViewFull }: { userScore: numbe
   }
   if (!entries) return null;
 
+  // If the user's own entry is in the list (after auto-submit), remove it to avoid duplication
+  // with the highlighted "YOU" row
+  let displayEntries = entries;
+  if (userName) {
+    const userIdx = entries.findIndex((e) => e.name === userName && e.score === userScore);
+    if (userIdx !== -1) {
+      displayEntries = [...entries.slice(0, userIdx), ...entries.slice(userIdx + 1)];
+    }
+  }
+
   // 1-indexed rank: count entries with strictly higher score
-  const rank = entries.filter((e) => e.score > userScore).length + 1;
-  const total = entries.length + 1; // approximate; user may not be submitted yet
+  const rank = displayEntries.filter((e) => e.score > userScore).length + 1;
+  const total = displayEntries.length + 1; // approximate; user may not be submitted yet
 
   const CONTEXT = 2;
   const startIdx = Math.max(0, rank - 1 - CONTEXT);
-  const endIdx = Math.min(entries.length, rank - 1 + CONTEXT);
-  const above = entries.slice(startIdx, rank - 1);
-  const below = entries.slice(rank - 1, endIdx);
+  const endIdx = Math.min(displayEntries.length, rank - 1 + CONTEXT);
+  const above = displayEntries.slice(startIdx, rank - 1);
+  const below = displayEntries.slice(rank - 1, endIdx);
   const showTopEllipsis = startIdx > 0;
   const showBottomEllipsis = endIdx < entries.length;
 
@@ -800,10 +810,12 @@ export function ResultsScreen({ onRestart, onViewScoreboard, isShared = false }:
                 Complete all 4 tests (no skipping) to submit your score to the leaderboard.
               </p>
             )}
-            <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
-              <Trophy className="w-4 h-4" />
-              View Scoreboard
-            </Button>
+            {(composite === null || isShared || testsCompleted < 4) && (
+              <Button variant="secondary" className="w-full font-semibold gap-2" size="lg" onClick={onViewScoreboard}>
+                <Trophy className="w-4 h-4" />
+                View Scoreboard
+              </Button>
+            )}
             <Button className="w-full" size="lg" onClick={onRestart}>
               Take Test Again
             </Button>
