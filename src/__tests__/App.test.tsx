@@ -156,6 +156,51 @@ describe("App", () => {
     expect(screen.getByLabelText("Copy results link")).toBeInTheDocument();
   });
 
+  test("copy results link uses clipboard API, not navigator.share", () => {
+    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", goodStroop);
+    resultsStore.setItem("pvt", goodPvt);
+    resultsStore.setItem("gonogo", goodGonogo);
+    window.history.replaceState({}, "", "/");
+
+    // Mock both APIs to track which one gets called
+    const shareSpy = jest.fn(() => Promise.resolve());
+    const writeTextSpy = jest.fn(() => Promise.resolve());
+    const origShare = navigator.share;
+    const origClipboard = navigator.clipboard;
+
+    Object.defineProperty(navigator, "share", { value: shareSpy, configurable: true });
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: writeTextSpy },
+      configurable: true,
+    });
+
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByText("Continue where you left off"));
+      fireEvent.click(screen.getByLabelText("Copy results link"));
+
+      // Should use clipboard, NOT navigator.share
+      expect(shareSpy).not.toHaveBeenCalled();
+      expect(writeTextSpy).toHaveBeenCalledTimes(1);
+
+      // The copied URL should contain the encoded results
+      const copiedUrl = writeTextSpy.mock.calls[0]![0] as string;
+      expect(copiedUrl).toContain("?r=");
+
+      // Verify the URL is decodable back to our results
+      const rParam = copiedUrl.split("?r=")[1]!.split("&")[0]!;
+      const decoded = JSON.parse(atob(rParam));
+      expect(decoded.sart).toEqual(goodSart);
+      expect(decoded.stroop).toEqual(goodStroop);
+      expect(decoded.pvt).toEqual(goodPvt);
+      expect(decoded.gonogo).toEqual(goodGonogo);
+    } finally {
+      Object.defineProperty(navigator, "share", { value: origShare, configurable: true });
+      Object.defineProperty(navigator, "clipboard", { value: origClipboard, configurable: true });
+    }
+  });
+
   test("theme picker is visible", () => {
     render(<App />);
     expect(screen.getByLabelText("Choose theme")).toBeInTheDocument();

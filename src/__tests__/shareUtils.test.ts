@@ -1,7 +1,7 @@
 import { test, expect, describe, beforeEach } from "bun:test";
 import { resultsStore } from "@/utils/resultsStore";
 import { buildShareUrl, countCompletedTests, hasAnyTestResults } from "@/utils/shareUtils";
-import type { SARTStats, PVTStats } from "@/types";
+import type { SARTStats, StroopStats, PVTStats, GoNoGoStats } from "@/types";
 
 const sartStats: SARTStats = {
   commissionErrors: 5,
@@ -107,6 +107,80 @@ describe("shareUtils", () => {
       const url = buildShareUrl();
       expect(typeof url).toBe("string");
       expect(url).toContain("?r=");
+    });
+
+    test("round-trip: buildShareUrl → loadEncoded recovers all test results", () => {
+      const stroopStats: StroopStats = {
+        condition1: { accuracy: 100, meanRT: 500 },
+        condition2: { accuracy: 100, meanRT: 600 },
+        condition3: { accuracy: 90, meanRT: 700 },
+        interferenceScore: 100,
+      };
+      const gonogoStats: GoNoGoStats = {
+        commissionErrors: 2, commissionErrorRate: 0.1,
+        omissionErrors: 1, omissionErrorRate: 0.0125,
+        meanRT: 300, rtCV: 0.15,
+        totalTrials: 100, goTrials: 80, nogoTrials: 20,
+      };
+
+      // Populate store with all 4 test results
+      resultsStore.setItem("sart", sartStats);
+      resultsStore.setItem("stroop", stroopStats);
+      resultsStore.setItem("pvt", pvtStats);
+      resultsStore.setItem("gonogo", gonogoStats);
+
+      // Generate share URL
+      const url = buildShareUrl();
+      const rParam = url.split("?r=")[1]!.split("&")[0]!;
+      expect(rParam.length).toBeGreaterThan(0);
+
+      // Clear store and reload from encoded param
+      resultsStore.clearAll();
+      expect(resultsStore.hasItem("sart")).toBe(false);
+
+      const loaded = resultsStore.loadEncoded(rParam);
+      expect(loaded).toBe(true);
+
+      // All 4 tests recovered exactly
+      expect(resultsStore.getItem("sart")).toEqual(sartStats);
+      expect(resultsStore.getItem("stroop")).toEqual(stroopStats);
+      expect(resultsStore.getItem("pvt")).toEqual(pvtStats);
+      expect(resultsStore.getItem("gonogo")).toEqual(gonogoStats);
+    });
+
+    test("share URL with empty store produces valid but empty encoded data", () => {
+      // No test results in store
+      const url = buildShareUrl();
+      expect(url).toContain("?r=");
+
+      const rParam = url.split("?r=")[1]!.split("&")[0]!;
+      const decoded = JSON.parse(atob(rParam));
+      // Should be empty object — no test keys
+      expect(Object.keys(decoded)).toHaveLength(0);
+    });
+
+    test("encoded data does not lose precision on numeric fields", () => {
+      resultsStore.setItem("sart", sartStats);
+      const url = buildShareUrl();
+      const rParam = url.split("?r=")[1]!.split("&")[0]!;
+
+      resultsStore.clearAll();
+      resultsStore.loadEncoded(rParam);
+
+      const recovered = resultsStore.getItem("sart") as SARTStats;
+      // Exact numeric equality — no floating point drift from encode/decode
+      expect(recovered.commissionRate).toBe(sartStats.commissionRate);
+      expect(recovered.omissionRate).toBe(sartStats.omissionRate);
+      expect(recovered.meanRT).toBe(sartStats.meanRT);
+      expect(recovered.rtCV).toBe(sartStats.rtCV);
+    });
+
+    test("loadEncoded returns false for invalid base64", () => {
+      expect(resultsStore.loadEncoded("not-valid-base64!!!")).toBe(false);
+    });
+
+    test("loadEncoded returns false for valid base64 but invalid JSON", () => {
+      expect(resultsStore.loadEncoded(btoa("not json"))).toBe(false);
     });
   });
 });
