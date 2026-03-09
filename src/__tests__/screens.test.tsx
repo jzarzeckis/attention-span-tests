@@ -32,13 +32,13 @@ describe("LandingScreen", () => {
   afterEach(() => { cleanup(); });
 
   test("shows title and start button", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
     expect(screen.getByText("Brainrot Meter")).toBeInTheDocument();
     expect(screen.getByText("Check my brainrot")).toBeInTheDocument();
   });
 
   test("shows test list", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
     expect(screen.getByText("Sustained Attention (SART)")).toBeInTheDocument();
     expect(screen.getByText("Stroop Color-Word")).toBeInTheDocument();
     expect(screen.getByText("Psychomotor Vigilance (PVT)")).toBeInTheDocument();
@@ -47,13 +47,13 @@ describe("LandingScreen", () => {
 
   test("calls onStart when clicking start button", () => {
     const onStart = jest.fn();
-    render(<LandingScreen onStart={onStart} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} />);
+    render(<LandingScreen onStart={onStart} hasProgress={false} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
     fireEvent.click(screen.getByText("Check my brainrot"));
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
   test("shows continue and start over buttons when has progress", () => {
-    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={jest.fn()} onStartOver={jest.fn()} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={jest.fn()} onStartOver={jest.fn()} onViewScoreboard={jest.fn()} />);
     expect(screen.getByText("Continue where you left off")).toBeInTheDocument();
     expect(screen.getByText("Start over")).toBeInTheDocument();
   });
@@ -61,7 +61,7 @@ describe("LandingScreen", () => {
   test("calls onContinue and onStartOver correctly", () => {
     const onContinue = jest.fn();
     const onStartOver = jest.fn();
-    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={onContinue} onStartOver={onStartOver} />);
+    render(<LandingScreen onStart={jest.fn()} hasProgress={true} onContinue={onContinue} onStartOver={onStartOver} onViewScoreboard={jest.fn()} />);
 
     fireEvent.click(screen.getByText("Continue where you left off"));
     expect(onContinue).toHaveBeenCalledTimes(1);
