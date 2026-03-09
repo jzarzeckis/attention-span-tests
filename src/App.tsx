@@ -124,7 +124,9 @@ function ShareFAB() {
     const file = new File([blob], "brainrot-score.png", { type: "image/png" });
 
     // Mobile: Web Share API with file support (iOS and Android Chrome 86+)
-    if (navigator.share) {
+    // Skip on Windows — the native share UI is poor; download instead
+    const isWindows = /Windows/i.test(navigator.userAgent);
+    if (navigator.share && !isWindows) {
       try {
         await navigator.share({ title: "My Brainrot Score", files: [file] });
         return;
