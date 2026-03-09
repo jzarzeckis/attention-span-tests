@@ -21,15 +21,29 @@ Default to using Bun instead of Node.js.
 
 ## Testing
 
-Use `bun test` to run tests.
+**Follow TDD (Test-Driven Development) for new features.** Write tests first, then implement.
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+Run tests with `bun test`. Tests live in `src/__tests__/` and use:
+- `bun:test` for test runner (imports: `test`, `expect`, `describe`, `beforeEach`, `afterEach`, `jest`)
+- `@testing-library/react` for component tests (`render`, `screen`, `fireEvent`, `act`, `cleanup`)
+- `@testing-library/jest-dom/jest-globals` for DOM matchers (via `src/test-setup.ts` preload)
+- `happy-dom` for DOM environment (via `@happy-dom/global-registrator`)
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
+### Test conventions
+- **Always use fake timers** (`jest.useFakeTimers()` / `jest.advanceTimersByTime()`) — the app is timer-heavy
+- Call `cleanup()` in `afterEach` of every component test file
+- For SART/GoNoGo tap tests, use `fireEvent.keyDown(document, { code: "Space" })` — native `addEventListener("mousedown")` handlers don't fire with `fireEvent.mouseDown` in happy-dom
+- `performance.now()` does not advance with fake timers, so RT values will be ~0 in tests. Assert `>= 0` for RT fields, not `> 0`
+- Test behavioral scoring (user action → resulting stats) not just UI flow
+- For Stroop, detect correct answer by checking stimulus element class names (ink color) or text content (word)
+
+### Test structure
+- `src/__tests__/*Test.test.tsx` — component UI flow tests (instructions, countdown, phase transitions)
+- `src/__tests__/*Scoring.test.tsx` — behavioral scoring tests (tap patterns → commission/omission errors, RT, accuracy)
+- `src/__tests__/scoring.test.ts` — pure scoring function tests (scoreLinear, calculateScores, compositeScore, getRank)
+- `src/__tests__/shareUtils.test.ts` — URL sharing round-trip tests
+- `src/__tests__/screens.test.tsx` — screen component tests (Landing, Questionnaire, TestScreen, Results)
+- `src/__tests__/App.test.tsx` — integration tests (navigation, share FAB, continue/restart)
 
 ## Frontend
 

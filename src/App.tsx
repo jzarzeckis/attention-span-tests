@@ -161,11 +161,9 @@ function ShareFAB() {
       toast.success(message);
     };
 
-    if (navigator.share) {
-      navigator.share({ title: "Brainrot Meter Results", url }).catch(() => {});
-      return;
-    }
-
+    // Always copy to clipboard — don't use navigator.share here because
+    // dismissing the share sheet silently swallows the action (noop).
+    // The "Flex my score" image button already handles native sharing.
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url).then(afterCopy).catch(afterCopy);
       return;
