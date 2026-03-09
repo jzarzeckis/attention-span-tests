@@ -55,9 +55,9 @@ describe("App", () => {
     // Skip questionnaire
     fireEvent.click(screen.getByText("Skip survey and go straight to tests"));
 
-    // Should be on first test
+    // Should be on first test (Stroop)
     expect(screen.getByText("Test 1 of 4")).toBeInTheDocument();
-    expect(screen.getAllByText("Sustained Attention (SART)").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Stroop Color-Word").length).toBeGreaterThanOrEqual(1);
   });
 
   test("skipping all tests reaches results screen", () => {
@@ -96,11 +96,11 @@ describe("App", () => {
   });
 
   test("continue resumes from first incomplete test", () => {
-    resultsStore.setItem("sart", goodSart);
+    resultsStore.setItem("stroop", goodStroop);
     render(<App />);
 
     fireEvent.click(screen.getByText("Continue where you left off"));
-    // Should be on test 2 (Stroop)
+    // Should be on test 2 (GoNoGo)
     expect(screen.getByText("Test 2 of 4")).toBeInTheDocument();
   });
 
