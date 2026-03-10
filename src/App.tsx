@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateScoreImage, buildShareUrl, hasAnyTestResults, countCompletedTests } from "@/utils/shareUtils";
 import { resultsStore } from "@/utils/resultsStore";
+import { track } from "@/utils/analytics";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { THEMES, type ThemeId } from "@/themes";
 import { getOrCreateVisitorId } from "@/utils/visitorId";
@@ -161,6 +162,7 @@ function ShareFAB() {
     if (navigator.share && !isWindows) {
       try {
         await navigator.share({ title: "My Brainrot Score", files: [file] });
+        track("share_image", { method: "native" });
         return;
       } catch (err) {
         // User cancelled — stop here
@@ -178,6 +180,7 @@ function ShareFAB() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(objectUrl);
+    track("share_image", { method: "download" });
     toast.success("Score image saved — share it on social media!");
   }, []);
 
@@ -186,6 +189,7 @@ function ShareFAB() {
     const url = buildShareUrl(theme);
 
     const afterCopy = () => {
+      track("share_link", { completed_tests: count });
       const message =
         count < 4
           ? `Link copied! (${count} of 4 tests — finish the rest for your full score)`
@@ -323,6 +327,7 @@ function AppInner() {
 
   const handleQuestionnaireComplete = (data?: SelfReportData) => {
     if (data) {
+      track("questionnaire_complete", { age: data.age, short_form_usage: data.shortFormUsage });
       // Persist survey data to DB
       const visitorId = getOrCreateVisitorId();
       fetch("/api/session", {
@@ -330,6 +335,8 @@ function AppInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "survey", visitorId, surveyData: data }),
       }).catch(() => {});
+    } else {
+      track("questionnaire_skip");
     }
     setScreen({ type: "test", testIndex: 0 });
   };
@@ -354,6 +361,7 @@ function AppInner() {
   };
 
   const handleRestart = () => {
+    track("test_restart");
     resultsStore.clearAll();
     window.history.pushState({}, "", "/");
     setScreen({ type: "landing" });
