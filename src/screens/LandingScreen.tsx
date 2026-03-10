@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Github, Trophy, BarChart2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TEST_LIST } from "@/types";
 
 interface LandingScreenProps {
@@ -58,16 +59,23 @@ export function LandingScreen({ onStart, hasProgress, onContinue, onStartOver, i
             </ul>
           </CardContent>
           <CardFooter className="flex-col gap-3">
-            {giveUpCount !== null && (
-              <div className="w-full rounded-lg border border-muted-foreground/20 bg-muted/40 px-4 py-3 text-center">
-                <p className="text-2xl font-black text-foreground/70">
-                  {giveUpCount.toLocaleString()}
-                </p>
-                <p className="text-xs font-medium text-muted-foreground mt-0.5">
-                  people have given up on this test
-                </p>
-              </div>
-            )}
+            <div className="w-full rounded-lg border border-muted-foreground/20 bg-muted/40 px-4 py-3 text-center">
+              {giveUpCount === null ? (
+                <div className="flex flex-col items-center gap-1.5">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-44" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-black text-foreground/70">
+                    {giveUpCount.toLocaleString()}
+                  </p>
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5">
+                    people have given up on this test
+                  </p>
+                </>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground text-center">
               ~15-20 min. Put your phone down. Yes, that one. The test won't feel fair if you're half-scrolling.
             </p>
