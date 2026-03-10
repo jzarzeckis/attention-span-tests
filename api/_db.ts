@@ -27,15 +27,29 @@ export async function ensureTables(sql: NeonQueryFunction<false, false>): Promis
   await sql`
     ALTER TABLE visitors ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE
   `;
-  // Backfill started_at for visitors who already have test sessions but predate
-  // the started_at column. Use yesterday morning as a conservative placeholder
-  // so they appear in the funnel without skewing time-based analysis.
+  // Backfill started_at for visitors who completed all 4 tests but predate
+  // the started_at column. Only backfill those who reached the final results
+  // (finished every test without skipping). Use yesterday morning as a
+  // conservative placeholder so they appear in the funnel.
   await sql`
     UPDATE visitors
     SET started_at = (CURRENT_DATE - INTERVAL '1 day') + TIME '08:00:00'
     WHERE started_at IS NULL
       AND EXISTS (
         SELECT 1 FROM test_sessions WHERE visitor_uuid = visitors.uuid
+          AND test_id = 'sart' AND finished_at IS NOT NULL AND skipped = FALSE
+      )
+      AND EXISTS (
+        SELECT 1 FROM test_sessions WHERE visitor_uuid = visitors.uuid
+          AND test_id = 'stroop' AND finished_at IS NOT NULL AND skipped = FALSE
+      )
+      AND EXISTS (
+        SELECT 1 FROM test_sessions WHERE visitor_uuid = visitors.uuid
+          AND test_id = 'pvt' AND finished_at IS NOT NULL AND skipped = FALSE
+      )
+      AND EXISTS (
+        SELECT 1 FROM test_sessions WHERE visitor_uuid = visitors.uuid
+          AND test_id = 'gonogo' AND finished_at IS NOT NULL AND skipped = FALSE
       )
   `;
   await sql`
