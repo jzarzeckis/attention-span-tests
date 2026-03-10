@@ -23,6 +23,13 @@
     <meta name="twitter:image" content="https://brainrot-meter.vercel.app/og-image.png" />
 
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <!-- Vercel Web Analytics — loaded dynamically so Bun's bundler doesn't try to resolve the runtime path -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      (function () { var s = document.createElement('script'); s.defer = true; s.src = '/_vercel/insights/script.js'; document.head.appendChild(s); })();
+    </script>
+
     <script type="module" src="./frontend.tsx" async></script>
   </head>
   <body>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { resultsStore } from "@/utils/resultsStore";
 import { getVisitorId } from "@/utils/visitorId";
+import { track } from "@/utils/analytics";
 import { ChevronDown, ChevronUp, Trophy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
@@ -138,6 +139,7 @@ function LeaderboardSubmit({ score, onSuccess }: { score: number; onSuccess: (na
         body: JSON.stringify({ name: trimmed, score, visitorId }),
       });
       if (res.ok) {
+        track("leaderboard_submit", { score });
         setStatus("success");
         onSuccess(trimmed);
       } else {
@@ -727,6 +729,19 @@ export function ResultsScreen({ onRestart, isShared = false }: ResultsScreenProp
   const testsCompleted = Object.values(scores).filter((v) => v !== null).length;
   const selfReport = resultsStore.getItem("selfReport");
   const [submittedName, setSubmittedName] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (composite !== null) {
+      const rank = getRank(composite);
+      track("results_view", {
+        composite_score: composite,
+        rank: rank.badge,
+        tests_completed: testsCompleted,
+        is_shared: isShared,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center pt-16 px-4 pb-24">
