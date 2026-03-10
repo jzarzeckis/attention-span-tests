@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { TEST_LIST } from "@/types";
 import { resultsStore } from "@/utils/resultsStore";
 import { getOrCreateVisitorId } from "@/utils/visitorId";
+import { track } from "@/utils/analytics";
 import { SARTTest } from "./tests/SARTTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
@@ -65,6 +66,7 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     // Track test start
     if (test?.id) {
       trackTestEvent(test.id, "start");
+      track("test_start", { test_id: test.id, test_index: testIndex });
     }
   }, [testIndex, test?.id]);
 
@@ -80,9 +82,10 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
         results: isSkipped ? undefined : results ?? undefined,
         skipped: !!isSkipped,
       });
+      track("test_complete", { test_id: test.id, test_index: testIndex });
     }
     onNext();
-  }, [onNext, test?.id]);
+  }, [onNext, test?.id, testIndex]);
 
   const handleSkip = () => {
     const testId = test?.id;
@@ -91,6 +94,7 @@ export function TestScreen({ testIndex, onNext }: TestScreenProps) {
     }
     if (testId) {
       trackTestEvent(testId, "finish", { skipped: true });
+      track("test_skip", { test_id: testId, test_index: testIndex });
     }
     safeNext();
   };
