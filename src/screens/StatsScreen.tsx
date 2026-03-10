@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Users, ClipboardList, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -181,11 +181,168 @@ function VisitorFlowSankey({
     );
   }
 
+  const isVertical = dims.width < 500;
+
+  if (isVertical) {
+    // ── Vertical (top-down) layout for mobile ──
+    // d3-sankey only does horizontal, so we run layout with swapped axes then transpose.
+    const margin = { top: 10, right: 10, bottom: 160, left: 10 };
+    const innerW = dims.width - margin.left - margin.right;
+    const nodeCount = data.nodes.length;
+    const svgHeight = Math.max(600, nodeCount * 70 + 200);
+    const innerH = svgHeight - margin.top - margin.bottom;
+
+    // Run layout in "horizontal" space where x→vertical, y→horizontal
+    const layout = d3Sankey<SNodeExtra, SLinkExtra>()
+      .nodeWidth(10)
+      .nodePadding(24)
+      .nodeAlign((node) => node.depth ?? 0)
+      .nodeSort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .extent([[0, 0], [innerH, innerW]]);
+
+    const graph = layout({
+      nodes: data.nodes.map((n) => ({ ...n })),
+      links: data.links.map((l) => ({ ...l })),
+    });
+
+    // Transpose: swap x↔y on nodes
+    for (const node of graph.nodes) {
+      const ox0 = node.x0!, ox1 = node.x1!, oy0 = node.y0!, oy1 = node.y1!;
+      node.x0 = oy0;
+      node.x1 = oy1;
+      node.y0 = ox0;
+      node.y1 = ox1;
+    }
+
+    // Build vertical link paths
+    function verticalLinkPath(link: (typeof graph.links)[number]): string {
+      const src = link.source as SNode;
+      const tgt = link.target as SNode;
+      const w = link.width ?? 0;
+      // Source: bottom edge of source node, offset by link.y0 (now x-position)
+      const sx = link.y0!;
+      const sy = src.y1!;
+      // Target: top edge of target node, offset by link.y1 (now x-position)
+      const tx = link.y1!;
+      const ty = tgt.y0!;
+      const midY = (sy + ty) / 2;
+      // Thick band: two cubic beziers forming a ribbon
+      const halfW = w / 2;
+      return [
+        `M ${sx - halfW},${sy}`,
+        `C ${sx - halfW},${midY} ${tx - halfW},${midY} ${tx - halfW},${ty}`,
+        `L ${tx + halfW},${ty}`,
+        `C ${tx + halfW},${midY} ${sx + halfW},${midY} ${sx + halfW},${sy}`,
+        `Z`,
+      ].join(" ");
+    }
+
+    return (
+      <div ref={containerRef} style={{ width: "100%", height: svgHeight, position: "relative", overflow: "visible" }}>
+        <svg width={dims.width} height={svgHeight} style={{ overflow: "visible" }}>
+          <g transform={`translate(${margin.left},${margin.top})`}>
+            {/* Links */}
+            {graph.links.map((link, i) => {
+              const isDropout = (link as SLink & SLinkExtra).isDropout === true;
+              const fill = isDropout ? "#f87171" : "#818cf8";
+              return (
+                <path
+                  key={i}
+                  d={verticalLinkPath(link)}
+                  fill={fill}
+                  fillOpacity={0.15}
+                  stroke={fill}
+                  strokeOpacity={0.3}
+                  strokeWidth={0.5}
+                  onMouseEnter={(e) => {
+                    const src = link.source as SNode;
+                    const tgt = link.target as SNode;
+                    setTooltip({
+                      x: e.clientX,
+                      y: e.clientY,
+                      text: `${src.name} → ${tgt.name}`,
+                      sub: `${(link.value ?? 0).toLocaleString()} visitors`,
+                    });
+                  }}
+                  onMouseMove={(e) => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                  onMouseLeave={() => setTooltip(null)}
+                  style={{ cursor: "default" }}
+                />
+              );
+            })}
+
+            {/* Nodes */}
+            {graph.nodes.map((node, i) => {
+              const x0 = node.x0 ?? 0;
+              const y0 = node.y0 ?? 0;
+              const x1 = node.x1 ?? 0;
+              const y1 = node.y1 ?? 0;
+              const w = x1 - x0;
+              const h = y1 - y0;
+              if (w === 0 && h === 0) return null;
+              const label = `${node.name} (${(node.value ?? 0).toLocaleString()})`;
+              const isBottomTier = (node.sortOrder ?? 0) >= 2;
+              return (
+                <g key={i}>
+                  <rect
+                    x={x0}
+                    y={y0}
+                    width={w}
+                    height={h}
+                    fill={node.color}
+                    fillOpacity={0.9}
+                    rx={2}
+                    onMouseEnter={(e) =>
+                      setTooltip({
+                        x: e.clientX,
+                        y: e.clientY,
+                        text: node.name,
+                        sub: `${(node.value ?? 0).toLocaleString()} visitors`,
+                      })
+                    }
+                    onMouseMove={(e) => setTooltip((t) => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                    onMouseLeave={() => setTooltip(null)}
+                    style={{ cursor: "default" }}
+                  />
+                  <text
+                    x={isBottomTier ? 0 : x0 + w / 2}
+                    y={isBottomTier ? 0 : y1 + 12}
+                    textAnchor={isBottomTier ? "start" : "middle"}
+                    dominantBaseline="hanging"
+                    transform={isBottomTier ? `translate(${x0 + w / 2},${y1 + 6}) rotate(45)` : undefined}
+                    style={{ fontSize: "10px", fill: "#9ca3af", fontFamily: "inherit" }}
+                    paintOrder="stroke"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={3}
+                    strokeLinejoin="round"
+                  >
+                    {label}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Tooltip */}
+        {tooltip && (
+          <div
+            className="fixed bg-background border rounded px-2 py-1 text-xs shadow-md pointer-events-none z-50"
+            style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
+          >
+            <div className="font-medium">{tooltip.text}</div>
+            <div>{tooltip.sub}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Horizontal layout for desktop ──
   const margin = { top: 10, right: 180, bottom: 10, left: 10 };
   const innerW = dims.width - margin.left - margin.right;
   const innerH = dims.height - margin.top - margin.bottom;
 
-  // Run d3-sankey layout
   const layout = d3Sankey<SNodeExtra, SLinkExtra>()
     .nodeWidth(14)
     .nodePadding(14)
@@ -429,6 +586,15 @@ function DemographicChart({
 }
 
 // ── Scatter Plots ─────────────────────────────────────────────────────────────
+
+class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  override state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  override render() {
+    if (this.state.hasError) return <p className="text-sm text-muted-foreground text-center py-6">Chart failed to render</p>;
+    return this.props.children;
+  }
+}
 
 const AGE_ORDER = ["13–15", "16–17", "18–20", "21+"];
 
@@ -964,7 +1130,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <AgeVsScoreScatter data={stats.scatterAgeVsScore} />
+                <ChartErrorBoundary><AgeVsScoreScatter data={stats.scatterAgeVsScore} /></ChartErrorBoundary>
               </CardContent>
             </Card>
 
@@ -978,7 +1144,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <SelfVsScoreScatter data={stats.scatterSelfVsScore} />
+                <ChartErrorBoundary><SelfVsScoreScatter data={stats.scatterSelfVsScore} /></ChartErrorBoundary>
               </CardContent>
             </Card>
 

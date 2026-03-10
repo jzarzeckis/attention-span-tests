@@ -6,9 +6,12 @@
       "mcp__Playwright",
       "Bash(bunx tsc:*)",
       "Bash(bun test:*)",
+      "Bash(bun *)",
       "Bash(curl:*)",
       "Bash(rsvg-convert:*)",
-      "WebFetch"
+      "WebFetch",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }
