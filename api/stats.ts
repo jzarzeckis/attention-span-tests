@@ -107,7 +107,6 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ── Funnel data ────────────────────────────────────────────────────────────
   const [
-    visitorsResult,
     surveysResult,
     sartStarted,
     sartFinished,
@@ -118,7 +117,6 @@ export default async function handler(req: Request): Promise<Response> {
     gonogoStarted,
     gonogoFinished,
   ] = await Promise.all([
-    sql`SELECT COUNT(*) AS count FROM visitors`,
     sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM visitor_surveys`,
     sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'sart'`,
     sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'sart' AND finished_at IS NOT NULL AND skipped = FALSE`,
@@ -130,12 +128,12 @@ export default async function handler(req: Request): Promise<Response> {
     sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'gonogo' AND finished_at IS NOT NULL AND skipped = FALSE`,
   ]);
 
-  const totalVisitors = Number(visitorsResult[0]?.count ?? 0);
   const totalSurveys = Number(surveysResult[0]?.count ?? 0);
+  const totalVisitors = totalSurveys;
 
   const funnel = [
-    { label: "Visited", count: totalVisitors },
-    { label: "Survey done", count: Number(surveysResult[0]?.count ?? 0) },
+    { label: "Visited", count: totalSurveys },
+    { label: "Survey done", count: totalSurveys },
     { label: "Stroop started", count: Number(stroopStarted[0]?.count ?? 0) },
     { label: "Stroop done", count: Number(stroopFinished[0]?.count ?? 0) },
     { label: "GoNoGo started", count: Number(gonogoStarted[0]?.count ?? 0) },
