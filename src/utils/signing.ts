@@ -4,8 +4,8 @@
 // It raises the bar for crafting fake submissions without any server-side auth.
 const SIGNING_KEY_HEX = "3f7a2b8c1e4d9f0a5c6b2e8d3a7f4c1b9e5d2a8c6f3b7e4d1a9c5f2b8e7d3a1c";
 
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(hex.length / 2) as Uint8Array<ArrayBuffer>;
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
   }
