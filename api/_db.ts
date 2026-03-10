@@ -25,6 +25,9 @@ export async function ensureTables(sql: NeonQueryFunction<false, false>): Promis
     )
   `;
   await sql`
+    ALTER TABLE visitors ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE
+  `;
+  await sql`
     CREATE TABLE IF NOT EXISTS visitor_surveys (
       id SERIAL PRIMARY KEY,
       visitor_uuid TEXT NOT NULL REFERENCES visitors(uuid) ON DELETE CASCADE,

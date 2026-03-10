@@ -94,6 +94,15 @@ export default async function handler(req: Request): Promise<Response> {
       return json({ success: true });
     }
 
+    if (action === "start") {
+      // Mark visitor as having clicked "Start" — only set once
+      await sql`
+        INSERT INTO visitors (uuid, started_at) VALUES (${visitorId}, NOW())
+        ON CONFLICT (uuid) DO UPDATE SET started_at = COALESCE(visitors.started_at, NOW())
+      `;
+      return json({ success: true });
+    }
+
     if (action === "survey") {
       const { surveyData } = body as { surveyData?: Record<string, unknown> };
       if (!surveyData) return json({ error: "Missing surveyData" }, 400);

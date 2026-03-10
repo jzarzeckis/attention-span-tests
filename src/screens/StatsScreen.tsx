@@ -90,17 +90,17 @@ function buildSankeyData(
   scoreDistribution: DistributionBucket[],
 ): { nodes: SNodeExtra[]; links: Array<{ source: number; target: number; value: number; isDropout: boolean }> } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
-  const visited = funnelMap["Visited"] ?? 0;
+  const started = funnelMap["Started"] ?? 0;
   const surveyDone = funnelMap["Survey done"] ?? 0;
   const sartDone = funnelMap["SART done"] ?? 0;
   const stroopDone = funnelMap["Stroop done"] ?? 0;
   const pvtDone = funnelMap["PVT done"] ?? 0;
   const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
 
-  if (visited === 0) return null;
+  if (started === 0) return null;
 
   const nodes: SNodeExtra[] = [
-    { name: "Visitors", color: "#818cf8" },      // 0
+    { name: "Started", color: "#818cf8" },        // 0
     { name: "Survey Done", color: "#818cf8" },   // 1
     { name: "Stroop Done", color: "#818cf8" },   // 2
     { name: "GoNoGo Done", color: "#818cf8" },   // 3
@@ -124,7 +124,7 @@ function buildSankeyData(
 
   // Main flow
   add(0, 1, surveyDone);
-  add(0, 6, Math.max(0, visited - surveyDone), true);
+  add(0, 6, Math.max(0, started - surveyDone), true);
   add(1, 2, stroopDone);
   add(1, 6, Math.max(0, surveyDone - stroopDone), true);
   add(2, 3, gonogoDone);
@@ -742,7 +742,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
-                  From first visit through all four tests. Each stage branches: those who continue flow right,
+                  From clicking "Start" through all four tests. Each stage branches: those who continue flow right,
                   those who drop off feed the red "🪦 Skill Issue" node. Completers fan out into score buckets
                   (red = fried, yellow = mid, green = sharp).
                 </CardDescription>

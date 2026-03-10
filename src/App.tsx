@@ -313,6 +313,14 @@ function AppInner() {
   }, []);
 
   const handleStart = () => {
+    // Record that visitor clicked "Start" (fire and forget)
+    const visitorId = getOrCreateVisitorId();
+    fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "start", visitorId }),
+    }).catch(() => {});
+
     // If returning visitor with survey data, skip questionnaire
     if (returningSurvey) {
       setScreen({ type: "test", testIndex: 0 });
