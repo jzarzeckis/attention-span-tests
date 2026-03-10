@@ -76,6 +76,7 @@ const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
 interface SNodeExtra {
   name: string;
   color: string;
+  sortKey: number;
 }
 
 interface SLinkExtra {
@@ -100,21 +101,24 @@ function buildSankeyData(
   if (started === 0) return null;
 
   const nodes: SNodeExtra[] = [
-    { name: "Started", color: "#818cf8" },        // 0
-    { name: "Survey Done", color: "#818cf8" },   // 1
-    { name: "Stroop Done", color: "#818cf8" },   // 2
-    { name: "GoNoGo Done", color: "#818cf8" },   // 3
-    { name: "PVT Done", color: "#818cf8" },      // 4
-    { name: "All 4 Tests", color: "#34d399" },   // 5
-    { name: "🪦 Skill Issue", color: "#f87171" },  // 6
+    { name: "Started", color: "#818cf8", sortKey: 0 },        // 0
+    { name: "Survey Done", color: "#818cf8", sortKey: 0 },   // 1
+    { name: "Stroop Done", color: "#818cf8", sortKey: 0 },   // 2
+    { name: "GoNoGo Done", color: "#818cf8", sortKey: 0 },   // 3
+    { name: "PVT Done", color: "#818cf8", sortKey: 0 },      // 4
+    { name: "All 4 Tests", color: "#34d399", sortKey: 0 },   // 5
+    { name: "🪦 Skill Issue", color: "#f87171", sortKey: -1 },  // 6 — top of its column
   ];
 
-  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
+  // Sort buckets low-to-high so they render in order regardless of DB query order
+  const activeBuckets = scoreDistribution
+    .filter((b) => b.count > 0)
+    .sort((a, b) => parseInt(a.bucket.split("–")[0] ?? "0", 10) - parseInt(b.bucket.split("–")[0] ?? "0", 10));
   const bucketStart = nodes.length;
   for (const b of activeBuckets) {
     const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
     const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
-    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
+    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color, sortKey: pct });
   }
 
   const links: Array<{ source: number; target: number; value: number; isDropout: boolean }> = [];
@@ -184,6 +188,7 @@ function VisitorFlowSankey({
     .nodeWidth(14)
     .nodePadding(14)
     .nodeAlign((node) => node.depth ?? 0)
+    .nodeSort((a, b) => a.sortKey - b.sortKey)
     .extent([[0, 0], [innerW, innerH]]);
 
   const graph = layout({
