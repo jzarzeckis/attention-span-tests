@@ -106,42 +106,59 @@ export default async function handler(req: Request): Promise<Response> {
   await ensureTables(sql);
 
   // ── Funnel data ────────────────────────────────────────────────────────────
-  const [
-    surveysResult,
-    sartStarted,
-    sartFinished,
-    stroopStarted,
-    stroopFinished,
-    pvtStarted,
-    pvtFinished,
-    gonogoStarted,
-    gonogoFinished,
-  ] = await Promise.all([
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM visitor_surveys`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'sart'`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'sart' AND finished_at IS NOT NULL AND skipped = FALSE`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'stroop'`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'stroop' AND finished_at IS NOT NULL AND skipped = FALSE`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'pvt'`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'pvt' AND finished_at IS NOT NULL AND skipped = FALSE`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'gonogo'`,
-    sql`SELECT COUNT(DISTINCT visitor_uuid) AS count FROM test_sessions WHERE test_id = 'gonogo' AND finished_at IS NOT NULL AND skipped = FALSE`,
-  ]);
+  // Compute each visitor's progression depth through the ordered test sequence
+  // (stroop → gonogo → pvt → sart). A visitor only counts as reaching stage N
+  // if they completed all prior stages, so the funnel is strictly monotonic.
+  const funnelRows = await sql`
+    WITH visitor_progress AS (
+      SELECT
+        vs.visitor_uuid,
+        -- has a finished (non-skipped) session for each test?
+        EXISTS (
+          SELECT 1 FROM test_sessions ts
+          WHERE ts.visitor_uuid = vs.visitor_uuid
+            AND ts.test_id = 'stroop'
+            AND ts.finished_at IS NOT NULL AND ts.skipped = FALSE
+        ) AS stroop_done,
+        EXISTS (
+          SELECT 1 FROM test_sessions ts
+          WHERE ts.visitor_uuid = vs.visitor_uuid
+            AND ts.test_id = 'gonogo'
+            AND ts.finished_at IS NOT NULL AND ts.skipped = FALSE
+        ) AS gonogo_done,
+        EXISTS (
+          SELECT 1 FROM test_sessions ts
+          WHERE ts.visitor_uuid = vs.visitor_uuid
+            AND ts.test_id = 'pvt'
+            AND ts.finished_at IS NOT NULL AND ts.skipped = FALSE
+        ) AS pvt_done,
+        EXISTS (
+          SELECT 1 FROM test_sessions ts
+          WHERE ts.visitor_uuid = vs.visitor_uuid
+            AND ts.test_id = 'sart'
+            AND ts.finished_at IS NOT NULL AND ts.skipped = FALSE
+        ) AS sart_done
+      FROM (SELECT DISTINCT visitor_uuid FROM visitor_surveys) vs
+    )
+    SELECT
+      COUNT(*) AS started,
+      COUNT(*) FILTER (WHERE stroop_done) AS stroop_done,
+      COUNT(*) FILTER (WHERE stroop_done AND gonogo_done) AS gonogo_done,
+      COUNT(*) FILTER (WHERE stroop_done AND gonogo_done AND pvt_done) AS pvt_done,
+      COUNT(*) FILTER (WHERE stroop_done AND gonogo_done AND pvt_done AND sart_done) AS sart_done
+    FROM visitor_progress
+  `;
 
-  const totalSurveys = Number(surveysResult[0]?.count ?? 0);
+  const row = funnelRows[0] ?? {};
+  const totalSurveys = Number(row.started ?? 0);
   const totalVisitors = totalSurveys;
 
   const funnel = [
-    { label: "Visited", count: totalSurveys },
-    { label: "Survey done", count: totalSurveys },
-    { label: "Stroop started", count: Number(stroopStarted[0]?.count ?? 0) },
-    { label: "Stroop done", count: Number(stroopFinished[0]?.count ?? 0) },
-    { label: "GoNoGo started", count: Number(gonogoStarted[0]?.count ?? 0) },
-    { label: "GoNoGo done", count: Number(gonogoFinished[0]?.count ?? 0) },
-    { label: "PVT started", count: Number(pvtStarted[0]?.count ?? 0) },
-    { label: "PVT done", count: Number(pvtFinished[0]?.count ?? 0) },
-    { label: "SART started", count: Number(sartStarted[0]?.count ?? 0) },
-    { label: "SART done", count: Number(sartFinished[0]?.count ?? 0) },
+    { label: "Started",     count: totalSurveys },
+    { label: "Stroop done", count: Number(row.stroop_done ?? 0) },
+    { label: "GoNoGo done", count: Number(row.gonogo_done ?? 0) },
+    { label: "PVT done",    count: Number(row.pvt_done ?? 0) },
+    { label: "SART done",   count: Number(row.sart_done ?? 0) },
   ];
 
   // ── Composite score distribution ─────────────────────────────────────────

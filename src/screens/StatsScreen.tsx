@@ -91,30 +91,21 @@ function buildSankeyData(
   scoreDistribution: DistributionBucket[],
 ): { nodes: SNodeExtra[]; links: Array<{ source: number; target: number; value: number; isDropout: boolean }> } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
-  const started = funnelMap["Survey done"] ?? 0;
-  const stroopStarted = funnelMap["Stroop started"] ?? 0;
+  const started = funnelMap["Started"] ?? 0;
   const stroopDone = funnelMap["Stroop done"] ?? 0;
-  const gonogoStarted = funnelMap["GoNoGo started"] ?? 0;
   const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
-  const pvtStarted = funnelMap["PVT started"] ?? 0;
   const pvtDone = funnelMap["PVT done"] ?? 0;
-  const sartStarted = funnelMap["SART started"] ?? 0;
   const sartDone = funnelMap["SART done"] ?? 0;
 
   if (started === 0) return null;
 
-  const DROPOUT = -1;
   const nodes: SNodeExtra[] = [
-    { name: "Started", color: "#818cf8", sortOrder: 0 },          // 0
-    { name: "Stroop", color: "#818cf8", sortOrder: 0 },           // 1
-    { name: "Stroop Done", color: "#818cf8", sortOrder: 0 },      // 2
-    { name: "GoNoGo", color: "#818cf8", sortOrder: 0 },           // 3
-    { name: "GoNoGo Done", color: "#818cf8", sortOrder: 0 },      // 4
-    { name: "PVT", color: "#818cf8", sortOrder: 0 },              // 5
-    { name: "PVT Done", color: "#818cf8", sortOrder: 0 },         // 6
-    { name: "SART", color: "#818cf8", sortOrder: 0 },             // 7
-    { name: "All 4 Tests", color: "#34d399", sortOrder: 1 },      // 8
-    { name: "🪦 Skill Issue", color: "#f87171", sortOrder: DROPOUT }, // 9 — top
+    { name: "Started", color: "#818cf8", sortOrder: 0 },        // 0
+    { name: "Stroop Done", color: "#818cf8", sortOrder: 0 },    // 1
+    { name: "GoNoGo Done", color: "#818cf8", sortOrder: 0 },    // 2
+    { name: "PVT Done", color: "#818cf8", sortOrder: 0 },       // 3
+    { name: "All 4 Tests", color: "#34d399", sortOrder: 1 },    // 4
+    { name: "🪦 Skill Issue", color: "#f87171", sortOrder: -1 }, // 5 — top
   ];
 
   const activeBuckets = scoreDistribution
@@ -137,28 +128,21 @@ function buildSankeyData(
     if (v > 0) links.push({ source: s, target: t, value: v, isDropout: drop });
   };
 
-  // Main flow: Started → Stroop → Stroop Done → GoNoGo → GoNoGo Done → PVT → PVT Done → SART → All 4 Tests
-  // Each "started" stage can drop off (didn't finish the test), each "done" stage can drop off (didn't start next)
-  add(0, 1, stroopStarted);                                          // Started → Stroop
-  add(0, 9, Math.max(0, started - stroopStarted), true);             // Started → dropout (never began Stroop)
-  add(1, 2, stroopDone);                                             // Stroop → Stroop Done
-  add(1, 9, Math.max(0, stroopStarted - stroopDone), true);          // Stroop → dropout (quit during Stroop)
-  add(2, 3, gonogoStarted);                                          // Stroop Done → GoNoGo
-  add(2, 9, Math.max(0, stroopDone - gonogoStarted), true);          // Stroop Done → dropout (didn't start GoNoGo)
-  add(3, 4, gonogoDone);                                             // GoNoGo → GoNoGo Done
-  add(3, 9, Math.max(0, gonogoStarted - gonogoDone), true);          // GoNoGo → dropout (quit during GoNoGo)
-  add(4, 5, pvtStarted);                                             // GoNoGo Done → PVT
-  add(4, 9, Math.max(0, gonogoDone - pvtStarted), true);             // GoNoGo Done → dropout (didn't start PVT)
-  add(5, 6, pvtDone);                                                // PVT → PVT Done
-  add(5, 9, Math.max(0, pvtStarted - pvtDone), true);                // PVT → dropout (quit during PVT)
-  add(6, 7, sartStarted);                                            // PVT Done → SART
-  add(6, 9, Math.max(0, pvtDone - sartStarted), true);               // PVT Done → dropout (didn't start SART)
-  add(7, 8, sartDone);                                               // SART → All 4 Tests
-  add(7, 9, Math.max(0, sartStarted - sartDone), true);              // SART → dropout (quit during SART)
+  // Main flow: Started → Stroop Done → GoNoGo Done → PVT Done → All 4 Tests
+  // The query guarantees monotonic counts (each stage requires all prior stages),
+  // so (previous - current) is always ≥ 0.
+  add(0, 1, stroopDone);
+  add(0, 5, started - stroopDone, true);
+  add(1, 2, gonogoDone);
+  add(1, 5, stroopDone - gonogoDone, true);
+  add(2, 3, pvtDone);
+  add(2, 5, gonogoDone - pvtDone, true);
+  add(3, 4, sartDone);
+  add(3, 5, pvtDone - sartDone, true);
 
   // Score bucket fan-out
   activeBuckets.forEach((b, i) => {
-    add(8, bucketStart + i, b.count);
+    add(4, bucketStart + i, b.count);
   });
 
   return { nodes, links };
