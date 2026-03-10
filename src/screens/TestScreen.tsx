@@ -6,17 +6,20 @@ import { TEST_LIST } from "@/types";
 import { resultsStore } from "@/utils/resultsStore";
 import { getOrCreateVisitorId } from "@/utils/visitorId";
 import { track } from "@/utils/analytics";
+import { signPayload } from "@/utils/signing";
 import { SARTTest } from "./tests/SARTTest";
 import { StroopTest } from "./tests/StroopTest";
 import { PVTTest } from "./tests/PVTTest";
 import { GoNoGoTest } from "./tests/GoNoGoTest";
 
-function trackTestEvent(testId: string, action: "start" | "finish", extra?: { results?: unknown; skipped?: boolean }) {
+async function trackTestEvent(testId: string, action: "start" | "finish", extra?: { results?: unknown; skipped?: boolean }) {
   const visitorId = getOrCreateVisitorId();
+  const body = JSON.stringify({ action, visitorId, testId, ...extra });
+  const signature = await signPayload(body);
   fetch("/api/test-session", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, visitorId, testId, ...extra }),
+    headers: { "Content-Type": "application/json", "X-Signature": signature },
+    body,
   }).catch(() => {});
 }
 

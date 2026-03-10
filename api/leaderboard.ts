@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { getDb, ensureLeaderboardTable } from "./_db";
+import { verifyPayload } from "./_signing";
 
 const MAX_ENTRIES = 500;
 
@@ -22,7 +23,11 @@ function isValidUUID(s: unknown): s is string {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST",
+        "Access-Control-Allow-Headers": "Content-Type, X-Signature",
+      },
     });
   }
 
@@ -34,11 +39,18 @@ export default async function handler(req: Request): Promise<Response> {
   await ensureLeaderboardTable(sql);
 
   if (req.method === "POST") {
+    let bodyText: string;
     let body: { name?: unknown; score?: unknown; visitorId?: unknown };
     try {
-      body = await req.json() as { name?: unknown; score?: unknown; visitorId?: unknown };
+      bodyText = await req.text();
+      body = JSON.parse(bodyText) as { name?: unknown; score?: unknown; visitorId?: unknown };
     } catch {
       return json({ error: "Invalid JSON" }, 400);
+    }
+
+    const signature = req.headers.get("X-Signature") ?? "";
+    if (!(await verifyPayload(bodyText, signature))) {
+      return json({ error: "Invalid signature" }, 401);
     }
 
     const { name, score, visitorId } = body;

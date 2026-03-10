@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { resultsStore } from "@/utils/resultsStore";
 import { getVisitorId } from "@/utils/visitorId";
 import { track } from "@/utils/analytics";
+import { signPayload } from "@/utils/signing";
 import { ChevronDown, ChevronUp, Trophy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
@@ -133,10 +134,12 @@ function LeaderboardSubmit({ score, onSuccess }: { score: number; onSuccess: (na
     setStatus("submitting");
     try {
       const visitorId = getVisitorId();
+      const body = JSON.stringify({ name: trimmed, score, visitorId });
+      const signature = await signPayload(body);
       const res = await fetch("/api/leaderboard", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, score, visitorId }),
+        headers: { "Content-Type": "application/json", "X-Signature": signature },
+        body,
       });
       if (res.ok) {
         track("leaderboard_submit", { score });

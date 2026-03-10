@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 import { getDb, ensureTables } from "./_db";
+import { verifyPayload } from "./_signing";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -30,7 +31,7 @@ export default async function handler(req: Request): Promise<Response> {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, X-Signature",
       },
     });
   }
@@ -46,11 +47,18 @@ export default async function handler(req: Request): Promise<Response> {
 
   await ensureTables(sql);
 
+  let bodyText: string;
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    bodyText = await req.text();
+    body = JSON.parse(bodyText) as Record<string, unknown>;
   } catch {
     return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const signature = req.headers.get("X-Signature") ?? "";
+  if (!(await verifyPayload(bodyText, signature))) {
+    return json({ error: "Invalid signature" }, 401);
   }
 
   const { action, visitorId, testId } = body;
