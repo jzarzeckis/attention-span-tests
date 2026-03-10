@@ -96,8 +96,14 @@ export default async function handler(req: Request): Promise<Response> {
     const safeVisitorId = isValidUUID(visitorId) ? visitorId : null;
 
     const rows = await sql`
+      WITH ranked AS (
+        SELECT name, score, visitor_uuid, created_at,
+          ROW_NUMBER() OVER (PARTITION BY name ORDER BY score DESC, created_at ASC) AS rn
+        FROM leaderboard
+      )
       SELECT name, score, visitor_uuid
-      FROM leaderboard
+      FROM ranked
+      WHERE rn = 1
       ORDER BY score DESC, created_at ASC
       LIMIT ${MAX_ENTRIES}
     `;
