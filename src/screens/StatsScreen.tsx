@@ -76,6 +76,7 @@ const SCORE_BUCKET_TIER_NAMES: Record<string, string> = {
 interface SNodeExtra {
   name: string;
   color: string;
+  sortOrder?: number;
 }
 
 interface SLinkExtra {
@@ -90,31 +91,36 @@ function buildSankeyData(
   scoreDistribution: DistributionBucket[],
 ): { nodes: SNodeExtra[]; links: Array<{ source: number; target: number; value: number; isDropout: boolean }> } | null {
   const funnelMap = Object.fromEntries(funnel.map((s) => [s.label, s.count]));
-  const visited = funnelMap["Visited"] ?? 0;
-  const surveyDone = funnelMap["Survey done"] ?? 0;
-  const sartDone = funnelMap["SART done"] ?? 0;
+  const started = funnelMap["Started"] ?? 0;
   const stroopDone = funnelMap["Stroop done"] ?? 0;
-  const pvtDone = funnelMap["PVT done"] ?? 0;
   const gonogoDone = funnelMap["GoNoGo done"] ?? 0;
+  const pvtDone = funnelMap["PVT done"] ?? 0;
+  const sartDone = funnelMap["SART done"] ?? 0;
 
-  if (visited === 0) return null;
+  if (started === 0) return null;
 
   const nodes: SNodeExtra[] = [
-    { name: "Visitors", color: "#818cf8" },      // 0
-    { name: "Survey Done", color: "#818cf8" },   // 1
-    { name: "Stroop Done", color: "#818cf8" },   // 2
-    { name: "GoNoGo Done", color: "#818cf8" },   // 3
-    { name: "PVT Done", color: "#818cf8" },      // 4
-    { name: "All 4 Tests", color: "#34d399" },   // 5
-    { name: "🪦 Skill Issue", color: "#f87171" },  // 6
+    { name: "Started", color: "#818cf8", sortOrder: 0 },        // 0
+    { name: "Stroop Done", color: "#818cf8", sortOrder: 0 },    // 1
+    { name: "GoNoGo Done", color: "#818cf8", sortOrder: 0 },    // 2
+    { name: "PVT Done", color: "#818cf8", sortOrder: 0 },       // 3
+    { name: "All 4 Tests", color: "#34d399", sortOrder: 1 },    // 4
+    { name: "🪦 Skill Issue", color: "#f87171", sortOrder: -1 }, // 5 — top
   ];
 
-  const activeBuckets = scoreDistribution.filter((b) => b.count > 0);
+  const activeBuckets = scoreDistribution
+    .filter((b) => b.count > 0)
+    .sort((a, b) => {
+      const aPct = parseInt(a.bucket.split("–")[0] ?? "0", 10);
+      const bPct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
+      return aPct - bPct;
+    });
   const bucketStart = nodes.length;
-  for (const b of activeBuckets) {
+  for (let i = 0; i < activeBuckets.length; i++) {
+    const b = activeBuckets[i]!;
     const pct = parseInt(b.bucket.split("–")[0] ?? "0", 10);
     const color = pct < 40 ? "#f87171" : pct < 70 ? "#fbbf24" : "#34d399";
-    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color });
+    nodes.push({ name: SCORE_BUCKET_TIER_NAMES[b.bucket] ?? b.bucket, color, sortOrder: 2 + i });
   }
 
   const links: Array<{ source: number; target: number; value: number; isDropout: boolean }> = [];
@@ -122,21 +128,21 @@ function buildSankeyData(
     if (v > 0) links.push({ source: s, target: t, value: v, isDropout: drop });
   };
 
-  // Main flow
-  add(0, 1, surveyDone);
-  add(0, 6, Math.max(0, visited - surveyDone), true);
-  add(1, 2, stroopDone);
-  add(1, 6, Math.max(0, surveyDone - stroopDone), true);
-  add(2, 3, gonogoDone);
-  add(2, 6, Math.max(0, stroopDone - gonogoDone), true);
-  add(3, 4, pvtDone);
-  add(3, 6, Math.max(0, gonogoDone - pvtDone), true);
-  add(4, 5, sartDone);
-  add(4, 6, Math.max(0, pvtDone - sartDone), true);
+  // Main flow: Started → Stroop Done → GoNoGo Done → PVT Done → All 4 Tests
+  // The query guarantees monotonic counts (each stage requires all prior stages),
+  // so (previous - current) is always ≥ 0.
+  add(0, 1, stroopDone);
+  add(0, 5, started - stroopDone, true);
+  add(1, 2, gonogoDone);
+  add(1, 5, stroopDone - gonogoDone, true);
+  add(2, 3, pvtDone);
+  add(2, 5, gonogoDone - pvtDone, true);
+  add(3, 4, sartDone);
+  add(3, 5, pvtDone - sartDone, true);
 
   // Score bucket fan-out
   activeBuckets.forEach((b, i) => {
-    add(5, bucketStart + i, b.count);
+    add(4, bucketStart + i, b.count);
   });
 
   return { nodes, links };
@@ -184,6 +190,7 @@ function VisitorFlowSankey({
     .nodeWidth(14)
     .nodePadding(14)
     .nodeAlign((node) => node.depth ?? 0)
+    .nodeSort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
     .extent([[0, 0], [innerW, innerH]]);
 
   const graph = layout({
@@ -719,9 +726,9 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
             <div className="grid grid-cols-3 gap-3">
               <StatCard
                 icon={Users}
-                label="Visitors"
+                label="Started"
                 value={stats.totalVisitors}
-                sub="unique visitors tracked"
+                sub="people who started testing"
               />
               <StatCard
                 icon={ClipboardList}
@@ -742,7 +749,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Visitor Flow — Where People Drop Off</CardTitle>
                 <CardDescription className="text-xs">
-                  From first visit through all four tests. Each stage branches: those who continue flow right,
+                  From pressing start through all four tests. Each stage branches: those who continue flow right,
                   those who drop off feed the red "🪦 Skill Issue" node. Completers fan out into score buckets
                   (red = fried, yellow = mid, green = sharp).
                 </CardDescription>
