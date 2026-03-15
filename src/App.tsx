@@ -9,6 +9,9 @@ import { TestScreen } from "@/screens/TestScreen";
 import { ResultsScreen, calculateScores, compositeScore, getRank } from "@/screens/ResultsScreen";
 import { ScoreboardScreen } from "@/screens/ScoreboardScreen";
 import { StatsScreen } from "@/screens/StatsScreen";
+import { AboutScreen } from "@/screens/AboutScreen";
+import { BlogScreen } from "@/screens/BlogScreen";
+import { NavOverlay } from "@/components/NavOverlay";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,6 +47,8 @@ function getScreenPath(screen: Screen): string | null {
     case "results": return "/results";
     case "scoreboard": return "/scoreboard";
     case "stats": return "/stats";
+    case "about": return "/about";
+    case "blog": return "/blog";
     default: return null; // questionnaire, test — no URL change (continuous flow)
   }
 }
@@ -53,6 +58,8 @@ function screenFromPath(path: string): Screen | null {
     case "/scoreboard": return { type: "scoreboard" };
     case "/stats": return { type: "stats" };
     case "/results": return { type: "results" };
+    case "/about": return { type: "about" };
+    case "/blog": return { type: "blog" };
     case "/": return { type: "landing" };
     default: return null;
   }
@@ -72,6 +79,8 @@ function initScreen(): Screen {
 
   if (path === "/stats") return { type: "stats" };
   if (path === "/scoreboard") return { type: "scoreboard" };
+  if (path === "/about") return { type: "about" };
+  if (path === "/blog") return { type: "blog" };
   if (path === "/results") {
     // Only show results if there's something stored; otherwise fall back to landing
     if (hasAnyProgress()) return { type: "results" };
@@ -110,7 +119,7 @@ function initScreen(): Screen {
 function ThemePicker() {
   const { theme, setTheme } = useTheme();
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-11 right-4 z-50">
       <Select value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
         <SelectTrigger
           size="sm"
@@ -369,6 +378,8 @@ function AppInner() {
 
   const handleBackFromScoreboard = () => history.back();
   const handleBackFromStats = () => history.back();
+  const handleBackFromAbout = () => navigate({ type: "landing" });
+  const handleBackFromBlog = () => navigate({ type: "landing" });
 
   return (
     <>
@@ -396,6 +407,13 @@ function AppInner() {
       {screen.type === "stats" && (
         <StatsScreen onBack={handleBackFromStats} />
       )}
+      {screen.type === "about" && (
+        <AboutScreen onBack={handleBackFromAbout} />
+      )}
+      {screen.type === "blog" && (
+        <BlogScreen onBack={handleBackFromBlog} />
+      )}
+      <NavOverlay />
       <ThemePicker />
       {screen.type !== "test" && <ShareFAB />}
       <Toaster position="bottom-center" />

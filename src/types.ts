@@ -13,7 +13,9 @@ export type Screen =
   | { type: "test"; testIndex: number }
   | { type: "results"; isShared?: boolean }
   | { type: "scoreboard"; from?: "landing" | "results" }
-  | { type: "stats" };
+  | { type: "stats" }
+  | { type: "about" }
+  | { type: "blog" };
 
 // ── Result types ────────────────────────────────────────────────────────────
 
